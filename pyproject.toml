@@ -76,6 +76,18 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
+# Stub modules from Milestone 1 - will be completed in future milestones
+[[tool.mypy.overrides]]
+module = [
+    "tandem_simulator.authentication.*",
+    "tandem_simulator.ble.*",
+    "tandem_simulator.state.*",
+    "tandem_simulator.handlers.*",
+    "tandem_simulator.tui.*",
+]
+warn_return_any = false
+check_untyped_defs = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

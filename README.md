@@ -16,18 +16,25 @@ A Bluetooth Low Energy (BLE) simulator that emulates a Tandem Mobi insulin pump,
 
 ## Project Status
 
-**Current Milestone: 1 (Foundation)**
+**Current Milestone: 2 (Core Protocol) - Complete**
 
 This project is under active development. See [PLAN.md](PLAN.md) for the complete implementation roadmap.
 
 ### Milestone Progress
 
-- ✅ **Milestone 1**: BLE peripheral infrastructure (in progress)
+- ✅ **Milestone 1**: BLE peripheral infrastructure
   - Basic Python project structure
   - Stub implementations for all major components
   - CI/CD pipeline configured
   - Unit tests framework
-- 🔲 **Milestone 2**: Message protocol implementation
+- ✅ **Milestone 2**: Message protocol implementation
+  - CRC16 calculation and validation
+  - Message header parsing and serialization
+  - Packet assembly and disassembly (chunking/reassembly)
+  - HMAC-SHA1 utilities for signed messages
+  - Authentication message classes (stubs for JPake)
+  - Status message classes (API version, battery, etc.)
+  - Comprehensive test suite (29 tests passing)
 - 🔲 **Milestone 3**: Authentication and pairing
 - 🔲 **Milestone 4**: Request/response handling
 - 🔲 **Milestone 5**: Terminal User Interface
