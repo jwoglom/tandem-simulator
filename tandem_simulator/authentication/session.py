@@ -6,9 +6,9 @@ and session persistence.
 Milestone 3 deliverable (stub).
 """
 
-from typing import Optional, Dict
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
+from typing import Dict, Optional
 
 
 @dataclass
@@ -48,7 +48,7 @@ class SessionManager:
         session = Session(
             device_address=device_address,
             session_key=session_key,
-            paired_at=datetime.now().isoformat()
+            paired_at=datetime.now().isoformat(),
         )
 
         self.sessions[device_address] = session

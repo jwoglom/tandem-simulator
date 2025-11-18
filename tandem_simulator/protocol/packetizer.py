@@ -7,7 +7,8 @@ Milestone 2 deliverable (stub).
 """
 
 from typing import List, Optional
-from tandem_simulator.utils.constants import DEFAULT_CHUNK_SIZE, CONTROL_CHUNK_SIZE
+
+from tandem_simulator.utils.constants import CONTROL_CHUNK_SIZE, DEFAULT_CHUNK_SIZE
 
 
 class Packetizer:
@@ -34,7 +35,7 @@ class Packetizer:
         # TODO: Implement message chunking
         chunks = []
         for i in range(0, len(message), self.chunk_size):
-            chunks.append(message[i:i + self.chunk_size])
+            chunks.append(message[i : i + self.chunk_size])
         return chunks
 
     def add_chunk(self, chunk: bytes) -> Optional[bytes]:

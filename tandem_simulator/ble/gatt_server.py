@@ -5,35 +5,31 @@ Tandem pump, including the Pump Service, Device Information Service,
 Generic Access Service, and Generic Attribute Service.
 """
 
-from typing import Optional, Callable, Dict, List
 from dataclasses import dataclass
-from tandem_simulator.utils.logger import get_logger
-from tandem_simulator.utils.constants import (
-    # Services
-    PUMP_SERVICE_UUID,
-    DEVICE_INFO_SERVICE_UUID,
-    GENERIC_ACCESS_SERVICE_UUID,
-    GENERIC_ATTRIBUTE_SERVICE_UUID,
-    # Pump Service Characteristics
-    CURRENT_STATUS_CHAR_UUID,
-    QUALIFYING_EVENTS_CHAR_UUID,
-    HISTORY_LOG_CHAR_UUID,
+from typing import Callable, Dict, List, Optional
+
+from tandem_simulator.utils.constants import (  # Services; Pump Service Characteristics; Device Info Service Characteristics; Generic Access Service Characteristics; Device Information
+    APPEARANCE_CHAR_UUID,
     AUTHORIZATION_CHAR_UUID,
     CONTROL_CHAR_UUID,
     CONTROL_STREAM_CHAR_UUID,
-    # Device Info Service Characteristics
-    MANUFACTURER_NAME_CHAR_UUID,
-    MODEL_NUMBER_CHAR_UUID,
-    SERIAL_NUMBER_CHAR_UUID,
-    SOFTWARE_REVISION_CHAR_UUID,
-    # Generic Access Service Characteristics
+    CURRENT_STATUS_CHAR_UUID,
+    DEVICE_INFO_SERVICE_UUID,
     DEVICE_NAME_CHAR_UUID,
-    APPEARANCE_CHAR_UUID,
-    # Device Information
+    GENERIC_ACCESS_SERVICE_UUID,
+    GENERIC_ATTRIBUTE_SERVICE_UUID,
+    HISTORY_LOG_CHAR_UUID,
     MANUFACTURER_NAME,
+    MANUFACTURER_NAME_CHAR_UUID,
     MODEL_NUMBER,
+    MODEL_NUMBER_CHAR_UUID,
+    PUMP_SERVICE_UUID,
+    QUALIFYING_EVENTS_CHAR_UUID,
+    SERIAL_NUMBER_CHAR_UUID,
     SOFTWARE_REVISION,
+    SOFTWARE_REVISION_CHAR_UUID,
 )
+from tandem_simulator.utils.logger import get_logger
 
 logger = get_logger()
 
@@ -188,7 +184,7 @@ class GATTServer:
             Characteristic(
                 MANUFACTURER_NAME_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=MANUFACTURER_NAME.encode('utf-8')
+                value=MANUFACTURER_NAME.encode("utf-8"),
             )
         )
 
@@ -197,7 +193,7 @@ class GATTServer:
             Characteristic(
                 MODEL_NUMBER_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=MODEL_NUMBER.encode('utf-8')
+                value=MODEL_NUMBER.encode("utf-8"),
             )
         )
 
@@ -206,7 +202,7 @@ class GATTServer:
             Characteristic(
                 SERIAL_NUMBER_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=self.serial_number.encode('utf-8')
+                value=self.serial_number.encode("utf-8"),
             )
         )
 
@@ -215,7 +211,7 @@ class GATTServer:
             Characteristic(
                 SOFTWARE_REVISION_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=SOFTWARE_REVISION.encode('utf-8')
+                value=SOFTWARE_REVISION.encode("utf-8"),
             )
         )
 
@@ -293,12 +289,13 @@ class GATTServer:
 
         # Device Name
         from tandem_simulator.utils.constants import DEVICE_NAME_PREFIX
+
         device_name = f"{DEVICE_NAME_PREFIX} {self.serial_number}"
         service.add_characteristic(
             Characteristic(
                 DEVICE_NAME_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=device_name.encode('utf-8')
+                value=device_name.encode("utf-8"),
             )
         )
 
@@ -307,7 +304,7 @@ class GATTServer:
             Characteristic(
                 APPEARANCE_CHAR_UUID,
                 CharacteristicProperties(read=True),
-                value=b'\x00\x00'  # Unknown appearance
+                value=b"\x00\x00",  # Unknown appearance
             )
         )
 

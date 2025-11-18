@@ -6,8 +6,8 @@ operations for signed messages.
 Milestone 2 deliverable (stub).
 """
 
-import hmac
 import hashlib
+import hmac
 from typing import Optional
 
 

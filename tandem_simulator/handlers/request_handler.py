@@ -6,7 +6,8 @@ manages response queue.
 Milestone 4 deliverable (stub).
 """
 
-from typing import Optional, Callable, Dict
+from typing import Callable, Dict, Optional
+
 from tandem_simulator.protocol.message import Message
 
 

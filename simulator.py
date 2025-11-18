@@ -17,12 +17,13 @@ Options:
     --help             Show this help message
 """
 
-import sys
 import argparse
 import logging
+import sys
+
 from tandem_simulator.ble.peripheral import BLEPeripheral
-from tandem_simulator.utils.logger import get_logger
 from tandem_simulator.utils.constants import DEFAULT_SERIAL_NUMBER
+from tandem_simulator.utils.logger import get_logger
 
 
 def parse_arguments():
@@ -42,27 +43,19 @@ Examples:
   python simulator.py --debug
 
 For more information, see the README.md file.
-        """
+        """,
     )
 
     parser.add_argument(
         "--serial",
         type=str,
         default=DEFAULT_SERIAL_NUMBER,
-        help=f"Pump serial number (default: {DEFAULT_SERIAL_NUMBER})"
+        help=f"Pump serial number (default: {DEFAULT_SERIAL_NUMBER})",
     )
 
-    parser.add_argument(
-        "--tui",
-        action="store_true",
-        help="Enable Terminal User Interface"
-    )
+    parser.add_argument("--tui", action="store_true", help="Enable Terminal User Interface")
 
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug logging"
-    )
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
     return parser.parse_args()
 
@@ -110,6 +103,7 @@ def main():
             logger.error(f"Error: {e}")
             if args.debug:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
 

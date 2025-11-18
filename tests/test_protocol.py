@@ -1,9 +1,10 @@
 """Tests for protocol components."""
 
 import pytest
+
+from tandem_simulator.protocol.crc import calculate_crc16, validate_crc16
 from tandem_simulator.protocol.message import Message, MessageRegistry
 from tandem_simulator.protocol.packetizer import Packetizer
-from tandem_simulator.protocol.crc import calculate_crc16, validate_crc16
 
 
 def test_message_is_request():

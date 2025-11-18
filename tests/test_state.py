@@ -1,6 +1,7 @@
 """Tests for pump state management."""
 
 import pytest
+
 from tandem_simulator.state.pump_state import PumpState, PumpStateManager
 
 

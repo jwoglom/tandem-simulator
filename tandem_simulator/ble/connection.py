@@ -4,8 +4,9 @@ This module handles tracking connected central devices, managing MTU negotiation
 and handling connection/disconnection events.
 """
 
-from typing import Optional, Dict
 from dataclasses import dataclass
+from typing import Dict, Optional
+
 from tandem_simulator.utils.logger import get_logger
 
 logger = get_logger()
@@ -47,7 +48,7 @@ class ConnectionManager:
         connection_info = ConnectionInfo(
             device_address=device_address,
             device_name=device_name,
-            connected_at=datetime.now().isoformat()
+            connected_at=datetime.now().isoformat(),
         )
 
         self.connections[device_address] = connection_info

@@ -5,12 +5,13 @@ with the correct service UUIDs and device name.
 """
 
 from typing import Optional
-from tandem_simulator.utils.logger import get_logger
+
 from tandem_simulator.utils.constants import (
-    PUMP_SERVICE_UUID,
-    DEVICE_NAME_PREFIX,
     DEFAULT_SERIAL_NUMBER,
+    DEVICE_NAME_PREFIX,
+    PUMP_SERVICE_UUID,
 )
+from tandem_simulator.utils.logger import get_logger
 
 logger = get_logger()
 

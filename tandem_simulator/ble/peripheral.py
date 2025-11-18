@@ -5,11 +5,12 @@ advertisement, and connection management using BlueZ via D-Bus.
 """
 
 from typing import Optional
-from tandem_simulator.ble.gatt_server import GATTServer
+
 from tandem_simulator.ble.advertisement import Advertisement
 from tandem_simulator.ble.connection import ConnectionManager
-from tandem_simulator.utils.logger import get_logger
+from tandem_simulator.ble.gatt_server import GATTServer
 from tandem_simulator.utils.constants import DEFAULT_SERIAL_NUMBER
+from tandem_simulator.utils.logger import get_logger
 
 logger = get_logger()
 
@@ -99,6 +100,7 @@ class BLEPeripheral:
 
             # Placeholder - in real implementation, this would be a GLib MainLoop
             import time
+
             while self.running:
                 time.sleep(1)
 

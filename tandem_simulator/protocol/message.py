@@ -6,8 +6,8 @@ parsing and constructing Tandem protocol messages.
 Milestone 2 deliverable (stub).
 """
 
-from typing import Optional, Dict, Type
 from dataclasses import dataclass
+from typing import Dict, Optional, Type
 
 
 @dataclass
@@ -34,7 +34,7 @@ class Message:
         self.payload: bytes = b""
 
     @classmethod
-    def parse(cls, data: bytes) -> 'Message':
+    def parse(cls, data: bytes) -> "Message":
         """Parse a message from bytes.
 
         Args:

@@ -1,6 +1,7 @@
 """Basic tests for Tandem pump simulator."""
 
 import pytest
+
 from tandem_simulator import __version__
 
 
@@ -11,7 +12,7 @@ def test_version():
 
 def test_import_ble_modules():
     """Test that BLE modules can be imported."""
-    from tandem_simulator.ble import peripheral, gatt_server, advertisement, connection
+    from tandem_simulator.ble import advertisement, connection, gatt_server, peripheral
 
     assert peripheral is not None
     assert gatt_server is not None
@@ -21,7 +22,7 @@ def test_import_ble_modules():
 
 def test_import_utils_modules():
     """Test that utils modules can be imported."""
-    from tandem_simulator.utils import logger, constants
+    from tandem_simulator.utils import constants, logger
 
     assert logger is not None
     assert constants is not None
@@ -29,7 +30,7 @@ def test_import_utils_modules():
 
 def test_import_protocol_modules():
     """Test that protocol modules can be imported."""
-    from tandem_simulator.protocol import message, packetizer, crc, crypto
+    from tandem_simulator.protocol import crc, crypto, message, packetizer
 
     assert message is not None
     assert packetizer is not None
@@ -40,10 +41,10 @@ def test_import_protocol_modules():
 def test_constants():
     """Test that constants are defined correctly."""
     from tandem_simulator.utils.constants import (
-        PUMP_SERVICE_UUID,
         DEVICE_INFO_SERVICE_UUID,
         MANUFACTURER_NAME,
         MODEL_NUMBER,
+        PUMP_SERVICE_UUID,
     )
 
     assert PUMP_SERVICE_UUID == "0000fdfb-0000-1000-8000-00805f9b34fb"
