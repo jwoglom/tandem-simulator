@@ -45,6 +45,19 @@ jobs:
         pip install -r requirements-ci.txt
         pip install -r requirements-dev-ci.txt
 
+    - name: Link system packages to virtual environment
+      run: |
+        # Get Python site-packages directory
+        SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+        # Link dbus and gi from system packages
+        ln -sf /usr/lib/python3/dist-packages/dbus* "$SITE_PACKAGES/"
+        ln -sf /usr/lib/python3/dist-packages/gi "$SITE_PACKAGES/"
+        ln -sf /usr/lib/python3/dist-packages/_dbus* "$SITE_PACKAGES/"
+        ln -sf /usr/lib/python3/dist-packages/*gi* "$SITE_PACKAGES/" 2>/dev/null || true
+        echo "Linked system packages to $SITE_PACKAGES"
+        # Verify imports work
+        python -c "import dbus; import gi; print('✓ dbus and gi imports successful')"
+
     - name: Lint with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names

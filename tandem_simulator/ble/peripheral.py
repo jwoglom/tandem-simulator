@@ -6,6 +6,14 @@ advertisement, and connection management using BlueZ via D-Bus.
 
 from typing import Optional
 
+import dbus
+import dbus.mainloop.glib
+
+try:
+    from gi.repository import GLib
+except ImportError:
+    GLib = None  # type: ignore
+
 from tandem_simulator.ble.advertisement import Advertisement
 from tandem_simulator.ble.connection import ConnectionManager
 from tandem_simulator.ble.gatt_server import GATTServer
@@ -30,6 +38,10 @@ class BLEPeripheral:
         """
         self.serial_number = serial_number or DEFAULT_SERIAL_NUMBER
         self.running = False
+        self.mainloop: Optional[GLib.MainLoop] = None
+
+        # Initialize D-Bus main loop
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
         # Initialize components
         self.gatt_server = GATTServer(self.serial_number)
@@ -52,17 +64,32 @@ class BLEPeripheral:
 
         logger.info("Starting BLE peripheral...")
 
-        # TODO: Register GATT server with BlueZ via D-Bus
-        # TODO: Set up D-Bus main loop
-        # TODO: Handle connection events
+        try:
+            # Register GATT server with BlueZ via D-Bus
+            self.gatt_server.register()
+            logger.debug("GATT server registered")
 
-        # Start advertising
-        self.advertisement.start()
+            # Start advertising
+            self.advertisement.start()
+            logger.debug("Advertisement started")
 
-        self.running = True
-        logger.info("BLE peripheral started successfully")
-        logger.info(f"Device name: {self.advertisement.device_name}")
-        logger.info("Waiting for connections...")
+            # Set up connection event handlers
+            self._setup_connection_handlers()
+
+            self.running = True
+            logger.info("BLE peripheral started successfully")
+            logger.info(f"Device name: {self.advertisement.device_name}")
+            logger.info("Waiting for connections...")
+
+        except Exception as e:
+            logger.error(f"Failed to start BLE peripheral: {e}")
+            # Clean up on failure
+            try:
+                self.advertisement.stop()
+                self.gatt_server.unregister()
+            except Exception:
+                pass
+            raise
 
     def stop(self):
         """Stop the BLE peripheral.
@@ -78,14 +105,29 @@ class BLEPeripheral:
 
         logger.info("Stopping BLE peripheral...")
 
-        # Stop advertising
-        self.advertisement.stop()
+        try:
+            # Stop advertising
+            self.advertisement.stop()
+            logger.debug("Advertisement stopped")
 
-        # TODO: Disconnect all clients
-        # TODO: Unregister GATT server from BlueZ
+            # Disconnect all clients
+            self._disconnect_all_clients()
 
-        self.running = False
-        logger.info("BLE peripheral stopped")
+            # Unregister GATT server from BlueZ
+            self.gatt_server.unregister()
+            logger.debug("GATT server unregistered")
+
+            # Stop the main loop if running
+            if self.mainloop and self.mainloop.is_running():
+                self.mainloop.quit()
+                self.mainloop = None
+
+            self.running = False
+            logger.info("BLE peripheral stopped")
+
+        except Exception as e:
+            logger.error(f"Error stopping BLE peripheral: {e}")
+            self.running = False
 
     def run(self):
         """Run the BLE peripheral main loop.
@@ -95,17 +137,22 @@ class BLEPeripheral:
         try:
             self.start()
 
-            # TODO: Run D-Bus main loop (e.g., GLib.MainLoop)
+            if GLib is None:
+                logger.error("GLib not available - cannot run main loop")
+                logger.info("Install PyGObject: pip install PyGObject")
+                return
+
+            # Run D-Bus main loop
+            logger.info("Starting D-Bus main loop")
             logger.info("Press Ctrl+C to stop")
 
-            # Placeholder - in real implementation, this would be a GLib MainLoop
-            import time
-
-            while self.running:
-                time.sleep(1)
+            self.mainloop = GLib.MainLoop()
+            self.mainloop.run()
 
         except KeyboardInterrupt:
             logger.info("Received keyboard interrupt")
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
         finally:
             self.stop()
 
@@ -148,8 +195,117 @@ class BLEPeripheral:
             char_uuid: Characteristic UUID
             value: Value to send in notification
         """
-        # TODO: Implement D-Bus notification sending
-        logger.debug(f"Sending notification for {char_uuid}: {value.hex()}")
+        try:
+            # Find the D-Bus characteristic object
+            if not self.gatt_server.application:
+                logger.warning("Cannot send notification: GATT server not registered")
+                return
+
+            # Find the service
+            for dbus_service in self.gatt_server.application.services:
+                if dbus_service.service.uuid == service_uuid:
+                    # Find the characteristic
+                    for dbus_char in dbus_service.characteristics:
+                        if dbus_char.char.uuid == char_uuid:
+                            # Check if notifications are enabled
+                            if not dbus_char.notifying:
+                                logger.debug(f"Notifications not enabled for {char_uuid}")
+                                return
+
+                            # Update the characteristic value
+                            dbus_char.char.value = value
+
+                            # Send PropertiesChanged signal
+                            if self.gatt_server.bus:
+                                from tandem_simulator.ble.gatt_server import (
+                                    DBUS_PROP_IFACE,
+                                    GATT_CHARACTERISTIC_IFACE,
+                                )
+
+                                props = {"Value": dbus.Array(value, signature="y")}
+                                dbus_char.PropertiesChanged(GATT_CHARACTERISTIC_IFACE, props, [])
+
+                                logger.debug(
+                                    f"Sent notification for {char_uuid}: " f"{value.hex()}"
+                                )
+                            return
+
+            logger.warning(f"Characteristic {char_uuid} not found for notification")
+
+        except Exception as e:
+            logger.error(f"Error sending notification: {e}")
+
+    def _setup_connection_handlers(self):
+        """Set up D-Bus signal handlers for connection events."""
+        try:
+            if not self.gatt_server.bus:
+                logger.warning("Cannot set up connection handlers: no D-Bus bus")
+                return
+
+            # Listen for PropertiesChanged signals on device objects
+            # This allows us to detect when devices connect/disconnect
+            from tandem_simulator.ble.gatt_server import BLUEZ_SERVICE_NAME, DBUS_PROP_IFACE
+
+            self.gatt_server.bus.add_signal_receiver(
+                self._on_properties_changed,
+                dbus_interface=DBUS_PROP_IFACE,
+                signal_name="PropertiesChanged",
+                bus_name=BLUEZ_SERVICE_NAME,
+                path_keyword="path",
+            )
+
+            logger.debug("Connection event handlers set up")
+
+        except Exception as e:
+            logger.error(f"Error setting up connection handlers: {e}")
+
+    def _on_properties_changed(self, interface, changed, invalidated, path):
+        """Handle D-Bus PropertiesChanged signals for connection events.
+
+        Args:
+            interface: D-Bus interface that changed
+            changed: Dictionary of changed properties
+            invalidated: List of invalidated properties
+            path: D-Bus object path
+        """
+        try:
+            # Check if this is a device connection/disconnection
+            if "org.bluez.Device1" in interface:
+                if "Connected" in changed:
+                    connected = changed["Connected"]
+                    device_address = path.split("/")[-1].replace("_", ":")
+
+                    if connected:
+                        # Device connected
+                        self.connection_manager.handle_connection(device_address)
+                    else:
+                        # Device disconnected
+                        self.connection_manager.handle_disconnection(device_address)
+
+        except Exception as e:
+            logger.error(f"Error handling properties changed: {e}")
+
+    def _disconnect_all_clients(self):
+        """Disconnect all connected clients."""
+        try:
+            if not self.connection_manager.is_connected():
+                logger.debug("No clients to disconnect")
+                return
+
+            # Get list of connected device addresses
+            connected_devices = list(self.connection_manager.connections.keys())
+
+            for device_address in connected_devices:
+                try:
+                    # Notify connection manager
+                    self.connection_manager.handle_disconnection(device_address)
+                except Exception as e:
+                    logger.error(f"Error disconnecting device {device_address}: {e}")
+
+            logger.info(f"Disconnected {len(connected_devices)} client(s)")
+
+        except Exception as e:
+            logger.error(f"Error disconnecting clients: {e}")
 
     def is_running(self) -> bool:
         """Check if the peripheral is running.
