@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, claude/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test on Python 3.12
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-gi \
+          python3-gi-cairo \
+          python3-dbus \
+          gir1.2-glib-2.0 \
+          libcairo2-dev
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install CI dependencies (excludes PyGObject and dbus-python - using system packages)
+        pip install -r requirements-ci.txt
+        pip install -r requirements-dev-ci.txt
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 tandem_simulator --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 tandem_simulator --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+
+    - name: Check code formatting with black
+      run: |
+        black --check tandem_simulator simulator.py
+
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only tandem_simulator simulator.py
+
+    - name: Type check with mypy
+      run: |
+        mypy tandem_simulator --ignore-missing-imports || true
+
+    - name: Run tests with pytest
+      run: |
+        pytest tests/ -v --cov=tandem_simulator --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  build:
+    name: Build package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+
+  syntax-check:
+    name: Python syntax check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Check Python syntax
+      run: |
+        python -m py_compile simulator.py
+        find tandem_simulator -name "*.py" -exec python -m py_compile {} \;
