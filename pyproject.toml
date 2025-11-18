@@ -57,6 +57,14 @@ Homepage = "https://github.com/jwoglom/tandem-simulator"
 Repository = "https://github.com/jwoglom/tandem-simulator"
 Issues = "https://github.com/jwoglom/tandem-simulator/issues"
 
+[tool.setuptools]
+packages = ["tandem_simulator"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tandem_simulator*"]
+exclude = ["tests*", "config*"]
+
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py312"]
