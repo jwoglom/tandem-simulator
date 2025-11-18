@@ -37,12 +37,79 @@ This project is under active development. See [PLAN.md](PLAN.md) for the complet
 
 ### Installation
 
-#### On Development Machine (Linux/macOS)
+#### Using uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver. It's the recommended way to set up the project.
+
+**On Development Machine (Linux/macOS):**
+
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repository
+git clone https://github.com/jwoglom/tandem-simulator.git
+cd tandem-simulator
+
+# Create a virtual environment and install dependencies
+uv sync
+
+# Run the simulator
+uv run python simulator.py --help
+
+# Or activate the virtual environment
+source .venv/bin/activate
+python simulator.py --help
+```
+
+**For development with all dev dependencies:**
+
+```bash
+# Install with dev dependencies (includes pytest, black, mypy, etc.)
+uv sync --all-extras
+
+# Run tests
+uv run pytest
+
+# Format code
+uv run black tandem_simulator simulator.py
+```
+
+**Using Make (shortcuts for common commands):**
+
+```bash
+# Install dependencies
+make install        # Production dependencies only
+make install-dev    # With dev dependencies
+
+# Run the simulator
+make run            # Default settings
+make run-debug      # With debug logging
+make run-tui        # With TUI
+
+# Development
+make test           # Run tests
+make test-cov       # Run tests with coverage
+make format         # Format code
+make lint           # Run linters
+make type-check     # Run type checking
+
+# See all available commands
+make help
+```
+
+#### Using pip (Alternative)
+
+**On Development Machine:**
 
 ```bash
 # Clone the repository
 git clone https://github.com/jwoglom/tandem-simulator.git
 cd tandem-simulator
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -55,6 +122,34 @@ python simulator.py --help
 ```
 
 #### On Raspberry Pi Zero 2W
+
+**Using uv:**
+
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y \
+    python3-dev \
+    libdbus-1-dev \
+    libglib2.0-dev \
+    libgirepository1.0-dev \
+    libcairo2-dev \
+    pkg-config \
+    bluez
+
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and install
+git clone https://github.com/jwoglom/tandem-simulator.git
+cd tandem-simulator
+uv sync
+
+# Run the simulator
+uv run python simulator.py
+```
+
+**Using pip:**
 
 ```bash
 # Install system dependencies
@@ -72,15 +167,38 @@ sudo apt-get install -y \
 # Clone and install
 git clone https://github.com/jwoglom/tandem-simulator.git
 cd tandem-simulator
-pip3 install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
 # Run the simulator
-python3 simulator.py
+python simulator.py
 ```
 
 ### Usage
 
+**With uv:**
+
 ```bash
+# Run with default settings
+uv run python simulator.py
+
+# Specify a serial number
+uv run python simulator.py --serial 12345678
+
+# Enable debug logging
+uv run python simulator.py --debug
+
+# Run with Terminal UI (Milestone 5)
+uv run python simulator.py --tui
+```
+
+**With activated virtual environment:**
+
+```bash
+# Activate the virtual environment first
+source .venv/bin/activate  # or: uv venv && source .venv/bin/activate
+
 # Run with default settings
 python simulator.py
 
@@ -140,7 +258,25 @@ tandem-simulator/
 
 ### Running Tests
 
+**With uv:**
+
 ```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=tandem_simulator --cov-report=term-missing
+
+# Run specific test file
+uv run pytest tests/test_basic.py -v
+```
+
+**With activated virtual environment:**
+
+```bash
+# Activate venv first
+source .venv/bin/activate
+
 # Run all tests
 pytest
 
@@ -152,6 +288,30 @@ pytest tests/test_basic.py -v
 ```
 
 ### Code Quality
+
+**With uv:**
+
+```bash
+# Format code
+uv run black tandem_simulator simulator.py
+
+# Sort imports
+uv run isort tandem_simulator simulator.py
+
+# Lint
+uv run flake8 tandem_simulator
+
+# Type check
+uv run mypy tandem_simulator
+
+# Run all quality checks at once
+uv run black tandem_simulator simulator.py && \
+uv run isort tandem_simulator simulator.py && \
+uv run flake8 tandem_simulator && \
+uv run mypy tandem_simulator
+```
+
+**With activated virtual environment:**
 
 ```bash
 # Format code
@@ -168,6 +328,18 @@ mypy tandem_simulator
 ```
 
 ### Building
+
+**With uv:**
+
+```bash
+# Build package
+uv build
+
+# Install locally in development mode
+uv pip install -e .
+```
+
+**With pip:**
 
 ```bash
 # Build package
