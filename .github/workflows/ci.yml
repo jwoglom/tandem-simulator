@@ -24,14 +24,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          libdbus-1-dev \
-          libglib2.0-dev \
-          libgirepository1.0-dev \
-          gobject-introspection \
-          libcairo2-dev \
-          pkg-config \
-          python3-dev \
-          gir1.2-glib-2.0
+          python3-gi \
+          python3-gi-cairo \
+          python3-dbus \
+          gir1.2-glib-2.0 \
+          libcairo2-dev
 
     - name: Cache pip packages
       uses: actions/cache@v3
@@ -44,7 +41,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        # Install CI dependencies (excludes PyGObject and dbus-python - using system packages)
+        pip install -r requirements-ci.txt
         pip install -r requirements-dev.txt
 
     - name: Lint with flake8

@@ -1,0 +1,11 @@
+# Tandem Mobi Insulin Pump Simulator - CI Dependencies
+
+# For CI, we use system packages for dbus-python and PyGObject
+# to avoid build issues with girepository-2.0 on Ubuntu runners.
+# Install via: sudo apt-get install python3-gi python3-gi-cairo python3-dbus
+
+# All other production dependencies (excluding dbus-python and PyGObject)
+cryptography>=41.0.0
+rich>=13.7.0
+textual>=0.44.0
+PyYAML>=6.0
