@@ -8,7 +8,6 @@ The Tandem protocol uses CRC16-CCITT with polynomial 0x1021.
 Milestone 2 deliverable.
 """
 
-
 # CRC16-CCITT polynomial
 CRC16_POLY = 0x1021
 CRC16_INIT = 0xFFFF

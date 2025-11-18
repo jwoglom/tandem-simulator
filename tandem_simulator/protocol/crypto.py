@@ -53,7 +53,9 @@ def validate_hmac(key: bytes, message: bytes, signature: bytes) -> bool:
     return hmac.compare_digest(calculated_hmac, signature)
 
 
-def create_signed_message_auth(key: bytes, message: bytes, timestamp: Optional[int] = None) -> bytes:
+def create_signed_message_auth(
+    key: bytes, message: bytes, timestamp: Optional[int] = None
+) -> bytes:
     """Create authentication block for a signed message.
 
     Args:
@@ -133,7 +135,9 @@ def extract_auth_block(signed_message: bytes) -> tuple[bytes, bytes]:
         ValueError: If message is too short for auth block
     """
     if len(signed_message) < AUTH_BLOCK_SIZE:
-        raise ValueError(f"Message too short for auth block: {len(signed_message)} < {AUTH_BLOCK_SIZE}")
+        raise ValueError(
+            f"Message too short for auth block: {len(signed_message)} < {AUTH_BLOCK_SIZE}"
+        )
 
     message = signed_message[:-AUTH_BLOCK_SIZE]
     auth_block = signed_message[-AUTH_BLOCK_SIZE:]

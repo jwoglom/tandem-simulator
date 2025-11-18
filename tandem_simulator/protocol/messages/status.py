@@ -47,9 +47,7 @@ class ApiVersionResponse(Message):
 
     opcode = 0x05
 
-    def __init__(
-        self, transaction_id: int = 0, major: int = 1, minor: int = 0, patch: int = 0
-    ):
+    def __init__(self, transaction_id: int = 0, major: int = 1, minor: int = 0, patch: int = 0):
         """Initialize API version response.
 
         Args:

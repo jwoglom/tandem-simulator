@@ -83,7 +83,10 @@ class Packetizer:
         self.reassembly_buffer += chunk
 
         # If we don't know the expected size yet, try to parse the header
-        if self.expected_message_size is None and len(self.reassembly_buffer) >= MESSAGE_HEADER_SIZE:
+        if (
+            self.expected_message_size is None
+            and len(self.reassembly_buffer) >= MESSAGE_HEADER_SIZE
+        ):
             # Parse header to determine message size
             payload_length = self.reassembly_buffer[2]  # Third byte is payload length
 
@@ -93,7 +96,10 @@ class Packetizer:
             self.expected_message_size = MESSAGE_HEADER_SIZE + payload_length + 2  # +2 for CRC
 
         # Check if we have the complete message
-        if self.expected_message_size is not None and len(self.reassembly_buffer) >= self.expected_message_size:
+        if (
+            self.expected_message_size is not None
+            and len(self.reassembly_buffer) >= self.expected_message_size
+        ):
             # Extract the complete message
             complete_message_with_crc = self.reassembly_buffer[: self.expected_message_size]
 
