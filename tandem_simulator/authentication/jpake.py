@@ -21,9 +21,9 @@ import os
 import secrets
 from typing import Optional, Tuple
 
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 
 class JPakeProtocol:
@@ -207,6 +207,7 @@ class JPakeProtocol:
             # Simplified implementation for simulator
             # A = (G1 + G3 + G4) * (x2 * s)
             # Note: In production, proper point addition would be needed
+            assert self.x2 is not None  # Checked above
             scalar_a = (self.x2 * self.s) % self.curve.key_size
             self.A = self._scalar_mult(scalar_a)
 
@@ -217,6 +218,7 @@ class JPakeProtocol:
                 raise ValueError("Missing values for Round 2 generation")
 
             # B = (G1 + G2 + G3) * (x4 * s)
+            assert self.x4 is not None  # Checked above
             scalar_b = (self.x4 * self.s) % self.curve.key_size
             self.B = self._scalar_mult(scalar_b)
 
@@ -265,6 +267,10 @@ class JPakeProtocol:
         # In production, proper point arithmetic would compute: K = ...
         # For simulator, both parties derive the same key from all shared material
         # in a canonical order (G1, G2, G3, G4, A, B, pairing_code)
+        assert self.G1 is not None and self.G2 is not None  # Set during protocol
+        assert self.G3 is not None and self.G4 is not None  # Set during protocol
+        assert self.A is not None and self.B is not None  # Checked above
+
         key_material = b""
         key_material += self._point_to_bytes(self.G1)
         key_material += self._point_to_bytes(self.G2)

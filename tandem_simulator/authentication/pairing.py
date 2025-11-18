@@ -8,8 +8,8 @@ Milestone 3 deliverable.
 
 import random
 import time
-from typing import Optional
 from datetime import datetime, timedelta
+from typing import Optional
 
 
 class PairingManager:
@@ -62,6 +62,7 @@ class PairingManager:
         if self.is_code_expired():
             return 0.0
 
+        assert self.code_generated_at is not None  # Checked by is_code_expired()
         elapsed = datetime.now() - self.code_generated_at
         remaining = self.pairing_timeout - elapsed.total_seconds()
         return max(0.0, remaining)

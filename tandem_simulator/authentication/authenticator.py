@@ -9,7 +9,7 @@ Milestone 3 deliverable.
 import logging
 import secrets
 from enum import Enum
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 from tandem_simulator.authentication.jpake import JPakeProtocol
 from tandem_simulator.authentication.pairing import PairingManager
@@ -17,8 +17,6 @@ from tandem_simulator.authentication.session import SessionManager
 from tandem_simulator.protocol.messages.authentication import (
     CentralChallengeRequest,
     CentralChallengeResponse,
-    PumpChallengeRequest,
-    PumpChallengeResponse,
     Jpake1aRequest,
     Jpake1aResponse,
     Jpake1bRequest,
@@ -29,6 +27,8 @@ from tandem_simulator.protocol.messages.authentication import (
     Jpake3SessionKeyResponse,
     Jpake4KeyConfirmationRequest,
     Jpake4KeyConfirmationResponse,
+    PumpChallengeRequest,
+    PumpChallengeResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -266,7 +266,7 @@ class Authenticator:
             raise ValueError("JPake protocol not initialized")
 
         # Derive session key
-        session_key = self.jpake_protocol.derive_session_key()
+        _ = self.jpake_protocol.derive_session_key()
 
         # Verify app's key confirmation
         is_valid = self.jpake_protocol.verify_key_confirmation(message.key_confirmation, "app")

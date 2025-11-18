@@ -9,10 +9,10 @@ Milestone 3 deliverable.
 import base64
 import json
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
 
 
 @dataclass

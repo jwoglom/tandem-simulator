@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from tandem_simulator.authentication.authenticator import Authenticator, AuthenticationState
+from tandem_simulator.authentication.authenticator import AuthenticationState, Authenticator
 from tandem_simulator.authentication.jpake import JPakeProtocol
 from tandem_simulator.authentication.pairing import PairingManager
 from tandem_simulator.authentication.session import Session, SessionManager
@@ -21,7 +21,6 @@ from tandem_simulator.protocol.messages.authentication import (
     Jpake4KeyConfirmationResponse,
     PumpChallengeRequest,
 )
-
 
 # JPake Protocol Tests
 
@@ -152,7 +151,7 @@ def test_pairing_manager_verify_code():
 def test_pairing_manager_verify_invalid_code():
     """Test pairing code verification with invalid code."""
     manager = PairingManager()
-    code = manager.generate_pairing_code()
+    _ = manager.generate_pairing_code()
 
     valid, msg = manager.verify_pairing_code("999999")
     assert not valid
@@ -162,7 +161,7 @@ def test_pairing_manager_verify_invalid_code():
 def test_pairing_manager_timeout():
     """Test pairing code timeout."""
     manager = PairingManager(timeout_seconds=1)
-    code = manager.generate_pairing_code()
+    _ = manager.generate_pairing_code()
 
     # Wait for timeout
     time.sleep(1.1)
@@ -175,7 +174,7 @@ def test_pairing_manager_max_attempts():
     """Test max pairing attempts."""
     manager = PairingManager()
     manager.max_attempts = 3
-    code = manager.generate_pairing_code()
+    _ = manager.generate_pairing_code()
 
     # Try with wrong code 3 times
     for i in range(3):
