@@ -151,9 +151,7 @@ class Authenticator:
             transaction_id=message.transaction_id, response=response_data
         )
 
-    def handle_pump_challenge_request(
-        self, message: PumpChallengeRequest
-    ) -> PumpChallengeResponse:
+    def handle_pump_challenge_request(self, message: PumpChallengeRequest) -> PumpChallengeResponse:
         """Handle pump challenge request from app.
 
         Args:
@@ -253,9 +251,7 @@ class Authenticator:
 
         self._set_state(AuthenticationState.JPAKE_ROUND2_COMPLETE)
 
-    def handle_jpake3_request(
-        self, message: Jpake3SessionKeyRequest
-    ) -> Jpake3SessionKeyResponse:
+    def handle_jpake3_request(self, message: Jpake3SessionKeyRequest) -> Jpake3SessionKeyResponse:
         """Handle JPake Round 3 session key request.
 
         Args:
@@ -273,9 +269,7 @@ class Authenticator:
         session_key = self.jpake_protocol.derive_session_key()
 
         # Verify app's key confirmation
-        is_valid = self.jpake_protocol.verify_key_confirmation(
-            message.key_confirmation, "app"
-        )
+        is_valid = self.jpake_protocol.verify_key_confirmation(message.key_confirmation, "app")
 
         if not is_valid:
             logger.error("Invalid key confirmation from app")

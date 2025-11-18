@@ -292,15 +292,11 @@ class JPakeProtocol:
 
         # Generate confirmation using HMAC
         confirmation_data = b"JPake-Confirmation-" + self.role.encode()
-        confirmation = hmac.new(
-            self.session_key, confirmation_data, hashlib.sha256
-        ).digest()
+        confirmation = hmac.new(self.session_key, confirmation_data, hashlib.sha256).digest()
 
         return confirmation
 
-    def verify_key_confirmation(
-        self, received_confirmation: bytes, expected_role: str
-    ) -> bool:
+    def verify_key_confirmation(self, received_confirmation: bytes, expected_role: str) -> bool:
         """Verify key confirmation from other party.
 
         Args:

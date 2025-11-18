@@ -152,10 +152,7 @@ class SessionManager:
         """
         if device_address in self.sessions:
             del self.sessions[device_address]
-            if (
-                self.current_session
-                and self.current_session.device_address == device_address
-            ):
+            if self.current_session and self.current_session.device_address == device_address:
                 self.current_session = None
             self.save_sessions()
             return True
