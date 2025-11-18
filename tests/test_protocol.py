@@ -21,7 +21,9 @@ from tandem_simulator.protocol.messages.authentication import (
 from tandem_simulator.protocol.messages.status import (
     ApiVersionRequest,
     ApiVersionResponse,
-    CurrentBatteryResponse,
+    CurrentBatteryV1Response,
+    CurrentBasalStatusResponse,
+    InsulinStatusResponse,
 )
 from tandem_simulator.protocol.packetizer import ControlPacketizer, Packetizer
 
@@ -87,7 +89,7 @@ def test_message_parse_and_serialize():
 
 def test_api_version_response():
     """Test API version response message."""
-    msg = ApiVersionResponse(transaction_id=5, major=2, minor=3, patch=1)
+    msg = ApiVersionResponse(transaction_id=5, major=2, minor=3)
     serialized = msg.serialize()
 
     # Parse it back
@@ -96,18 +98,20 @@ def test_api_version_response():
     assert parsed.transaction_id == 5
     assert parsed.major == 2
     assert parsed.minor == 3
-    assert parsed.patch == 1
 
 
 def test_current_battery_response():
-    """Test battery response message."""
-    msg = CurrentBatteryResponse(transaction_id=10, battery_percent=75)
+    """Test battery response message (V1)."""
+    msg = CurrentBatteryV1Response(
+        transaction_id=10, current_battery_abc=75, current_battery_ibc=80
+    )
     serialized = msg.serialize()
 
-    parsed = CurrentBatteryResponse.parse(serialized)
+    parsed = CurrentBatteryV1Response.parse(serialized)
 
     assert parsed.transaction_id == 10
-    assert parsed.battery_percent == 75
+    assert parsed.current_battery_abc == 75
+    assert parsed.current_battery_ibc == 80
 
 
 def test_packetizer_chunking():
@@ -127,7 +131,7 @@ def test_packetizer_chunking():
 def test_packetizer_reassembly():
     """Test message reassembly with CRC validation."""
     # Create a test message
-    msg = ApiVersionResponse(transaction_id=1, major=1, minor=0, patch=0)
+    msg = ApiVersionResponse(transaction_id=1, major=1, minor=0)
     serialized = msg.serialize()
 
     # Add CRC
@@ -222,7 +226,7 @@ def test_signed_message_auth():
 def test_message_registry_parse():
     """Test parsing messages using registry."""
     # Create an API version response
-    msg = ApiVersionResponse(transaction_id=3, major=1, minor=2, patch=3)
+    msg = ApiVersionResponse(transaction_id=3, major=1, minor=2)
     serialized = msg.serialize()
 
     # Parse using registry
@@ -232,7 +236,37 @@ def test_message_registry_parse():
     assert parsed.transaction_id == 3
     assert parsed.major == 1
     assert parsed.minor == 2
-    assert parsed.patch == 3
+
+
+def test_insulin_status_response():
+    """Test insulin status response message."""
+    msg = InsulinStatusResponse(
+        transaction_id=7, current_insulin_amount=25000, is_estimate=0, insulin_low_amount=20
+    )
+    serialized = msg.serialize()
+
+    parsed = InsulinStatusResponse.parse(serialized)
+    assert parsed.transaction_id == 7
+    assert parsed.current_insulin_amount == 25000
+    assert parsed.is_estimate == 0
+    assert parsed.insulin_low_amount == 20
+
+
+def test_current_basal_status_response():
+    """Test current basal status response message."""
+    msg = CurrentBasalStatusResponse(
+        transaction_id=8,
+        profile_basal_rate=8500,
+        current_basal_rate=8500,
+        basal_modified_bitmask=0,
+    )
+    serialized = msg.serialize()
+
+    parsed = CurrentBasalStatusResponse.parse(serialized)
+    assert parsed.transaction_id == 8
+    assert parsed.profile_basal_rate == 8500
+    assert parsed.current_basal_rate == 8500
+    assert parsed.basal_modified_bitmask == 0
 
 
 def test_central_challenge_messages():
