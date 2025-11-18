@@ -43,7 +43,7 @@ jobs:
         python -m pip install --upgrade pip
         # Install CI dependencies (excludes PyGObject and dbus-python - using system packages)
         pip install -r requirements-ci.txt
-        pip install -r requirements-dev.txt
+        pip install -r requirements-dev-ci.txt
 
     - name: Lint with flake8
       run: |
