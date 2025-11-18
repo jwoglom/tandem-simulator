@@ -1,0 +1,244 @@
+================================================================================
+CURRENTBOLUSSTATUSRESPONSE - EXACT JAVA TO PYTHON IMPLEMENTATION
+================================================================================
+
+SOURCE: https://raw.githubusercontent.com/jwoglom/pumpX2/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/response/currentStatus/CurrentBolusStatusResponse.java
+
+================================================================================
+1. EXTRACTED OPCODE AND SIZE
+================================================================================
+
+  Opcode:        45 (0x2D)
+  Message Type:  RESPONSE
+  Payload Size:  15 bytes
+  Request:       Opcode 44 (CurrentBolusStatusRequest)
+
+================================================================================
+2. EXTRACTED FIELDS (WITH EXACT BYTE OFFSETS)
+================================================================================
+
+  Field Name              Java Type  Size   Offset  Byte Order
+  ============================================================
+  statusId                int        1      0       (byte)
+  bolusId                 int        2      1-2     little-endian unsigned
+  [PADDING]               -          2      3-4     zero bytes
+  timestamp               long       4      5-8     little-endian unsigned
+  requestedVolume         long       4      9-12    little-endian unsigned
+  bolusSourceId           int        1      13      (byte)
+  bolusTypeBitmask        int        1      14      (byte)
+                          ============
+  TOTAL PAYLOAD:                     15 bytes
+
+
+================================================================================
+3. EXTRACTED PARSE() METHOD LOGIC
+================================================================================
+
+  Java Implementation:                Python Equivalent:
+  
+  statusId = raw[0]                  status_id = payload[0]
+  bolusId = readShort(raw, 1)        bolus_id = read_uint16_le(payload, 1)
+  timestamp = readUint32(raw, 5)     timestamp = read_uint32_le(payload, 5)
+  requestedVolume = readUint32(9)    requested_volume = read_uint32_le(payload, 9)
+  bolusSourceId = raw[13]            bolus_source_id = payload[13]
+  bolusTypeBitmask = raw[14]         bolus_type_bitmask = payload[14]
+
+
+================================================================================
+4. EXTRACTED BUILDCARGO() METHOD LOGIC
+================================================================================
+
+  Java Implementation:
+    Bytes.combine(
+      byte[status],
+      firstTwoBytesLittleEndian(bolusId),    [2 bytes]
+      byte[0, 0],                            [padding]
+      toUint32(timestamp),                   [4 bytes]
+      toUint32(requestedVolume),             [4 bytes]
+      byte[bolusSource],
+      byte[bolusTypeBitmask]
+    )
+
+  Python Equivalent:
+    bytes([status_id])
+    + write_uint16_le(bolus_id)
+    + bytes([0, 0])
+    + write_uint32_le(timestamp)
+    + write_uint32_le(requested_volume)
+    + bytes([bolus_source_id])
+    + bytes([bolus_type_bitmask])
+
+
+================================================================================
+5. EXTRACTED ENUM: CurrentBolusStatus
+================================================================================
+
+  REQUESTING(2)
+    - Bolus delivery is being requested/prepared
+
+  DELIVERING(1)
+    - Bolus is currently being delivered
+
+  ALREADY_DELIVERED_OR_INVALID(0)
+    - Bolus has been delivered or is invalid (no active bolus)
+
+  Method: fromId(int id) -> CurrentBolusStatus
+    - Maps integer ID to enum value
+
+
+================================================================================
+6. EXTRACTED GETTER METHODS
+================================================================================
+
+  Method                          Returns                 Notes
+  ==================================================================
+  get_status_id()                 int                     Raw status ID (0-2)
+  get_status()                    CurrentBolusStatus      Enum representation
+  get_bolus_id()                  int                     Unsigned short (0-65535)
+  get_timestamp()                 int                     Seconds since Jan 1, 2008
+  get_requested_volume()          int                     Units * 10000
+  get_bolus_source_id()           int                     Source ID (unsigned byte)
+  get_bolus_type_bitmask()        int                     Type bitmask (unsigned byte)
+  is_valid()                      bool                    Validity check
+
+
+================================================================================
+7. EXTRACTED VALIDITY LOGIC
+================================================================================
+
+  is_valid() returns FALSE if:
+    - Status == ALREADY_DELIVERED_OR_INVALID AND
+    - bolusId == 0 AND
+    - timestamp == 0
+
+  is_valid() returns TRUE for all other cases
+
+
+================================================================================
+8. EXTRACTED CONSTANTS AND ENCODING
+================================================================================
+
+  Little-Endian Helper Functions:
+    - read_uint16_le(data, offset)   -> int (unsigned 16-bit)
+    - read_uint32_le(data, offset)   -> int (unsigned 32-bit)
+    - write_uint16_le(value)         -> bytes (2 bytes)
+    - write_uint32_le(value)         -> bytes (4 bytes)
+
+  Data Type Mapping:
+    Java int  -> Python int
+    Java long -> Python int
+    Preserves all 32-bit unsigned values without loss
+
+
+================================================================================
+9. COMPLETE PYTHON IMPLEMENTATION STRUCTURE
+================================================================================
+
+  File: CurrentBolusStatusResponse_EXACT.py (361 lines)
+  
+  Contains:
+    - Little-endian helper functions (read_uint16_le, read_uint32_le, etc.)
+    - CurrentBolusStatus enum with from_id() class method
+    - CurrentBolusStatusRequest class (Opcode 44, empty request)
+    - CurrentBolusStatusResponse class (Opcode 45, 15-byte response)
+      - __init__() constructor with all 6 fields
+      - parse_payload() - exact byte parsing with offsets
+      - build_payload() - exact 15-byte assembly
+      - All getter methods (get_status_id, get_status, etc.)
+      - is_valid() validity check
+    - MessageRegistry registration for both opcodes
+
+
+================================================================================
+10. COMPLETE DOCUMENTATION
+================================================================================
+
+  File: CURRENTBOLUSSTATUSRESPONSE_EXTRACTION.md (339 lines)
+  
+  Contains:
+    - Detailed field table with Java/Python types
+    - Byte layout visualization
+    - Parse method comparison (Java vs Python)
+    - BuildCargo method comparison (Java vs Python)
+    - Complete enum definition comparison
+    - All getter methods documentation
+    - Validity check logic explanation
+    - Helper function implementations
+    - Key implementation notes
+    - Verification checklist
+
+
+================================================================================
+KEY IMPLEMENTATION NOTES
+================================================================================
+
+  1. Field Names: All camelCase converted to snake_case
+     statusId -> status_id
+     bolusId -> bolus_id
+     requestedVolume -> requested_volume
+     etc.
+
+  2. Byte Order: All multi-byte fields use little-endian
+     Uses Python's struct module with "<H" and "<I" format strings
+
+  3. Padding: 2 zero bytes at offset 3-4 are preserved
+     Required for exact compatibility with Java version
+
+  4. Timestamp Epoch: January 1, 2008 00:00:00 UTC
+     Same epoch as Java Dates.fromJan12008EpochSecondsToDate()
+
+  5. Payload Size: Exactly 15 bytes
+     Enforced in parse_payload() validation
+
+  6. Message Registration: Both request and response registered
+
+
+================================================================================
+FILES GENERATED
+================================================================================
+
+  1. /home/user/tandem-simulator/CurrentBolusStatusResponse_EXACT.py
+     - Complete Python implementation (361 lines)
+     - Ready to integrate into tandem_simulator.protocol.messages
+
+  2. /home/user/tandem-simulator/CURRENTBOLUSSTATUSRESPONSE_EXTRACTION.md
+     - Detailed extraction documentation (339 lines)
+     - Complete reference guide with all details
+
+  3. /home/user/tandem-simulator/EXTRACTION_SUMMARY.txt
+     - This file - quick visual reference
+
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+  [x] Opcode extracted: 45 (0x2D)
+  [x] Payload size extracted: 15 bytes
+  [x] All field names extracted with exact capitalization
+  [x] All field data types extracted (byte, short, int, long)
+  [x] Byte offsets extracted for each field in parse()
+  [x] Padding extracted (2 zero bytes at offset 3-4)
+  [x] Constants and enums extracted (CurrentBolusStatus)
+  [x] Complete parse() logic implemented (parse_payload)
+  [x] Complete buildCargo() logic implemented (build_payload)
+  [x] All getter methods implemented
+  [x] Validity check logic implemented (is_valid)
+  [x] Little-endian helper functions implemented
+  [x] Message registration implemented
+
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+  1. Replace the stub CurrentBolusStatusResponse in status.py with the
+     complete implementation from CurrentBolusStatusResponse_EXACT.py
+
+  2. Run tests to verify correct parsing and serialization
+
+  3. Add additional tests for edge cases (invalid bolus, etc.)
+
+  4. Document in PLAN.md as complete
+
+================================================================================

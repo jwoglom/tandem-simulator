@@ -1,0 +1,206 @@
+================================================================================
+CURRENTBOLUSSTATUSRESPONSE - COMPLETE BYTE STRUCTURE MAP
+================================================================================
+
+OPCODE: 45 (0x2D)
+TOTAL PAYLOAD: 15 bytes
+BYTE ORDER: Little-endian for multi-byte values
+
+================================================================================
+DETAILED BYTE LAYOUT (with values and types)
+================================================================================
+
+    HEX   DEC   FIELD                      TYPE        JAVA CODE
+    ---   ---   -----                      ----        ---------
+ +--+---+-----+----------------------------+---------+------------------+
+ |0 | 0 | 0x00| statusId                   | int (1B) | raw[0]           |
+ +--+---+-----+----------------------------+---------+------------------+
+ |1 | 1 | 0x01| bolusId (low byte)         | ushort   | readShort(raw,1) |
+ |2 | 2 | 0x02| bolusId (high byte)        | (2B)     | [little-endian]  |
+ +--+---+-----+----------------------------+---------+------------------+
+ |3 | 3 | 0x00| [PADDING BYTE 1]           | padding  | [reserved]       |
+ |4 | 4 | 0x00| [PADDING BYTE 2]           | (2B)     | [reserved]       |
+ +--+---+-----+----------------------------+---------+------------------+
+ |5 | 5 | 0x00| timestamp (byte 1)         | uint32   | readUint32(5)    |
+ |6 | 6 | 0x00| timestamp (byte 2)         | (4B)     | [little-endian]  |
+ |7 | 7 | 0x00| timestamp (byte 3)         |          |                  |
+ |8 | 8 | 0x00| timestamp (byte 4)         |          |                  |
+ +--+---+-----+----------------------------+---------+------------------+
+ |9 | 9 | 0x00| requestedVolume (byte 1)   | uint32   | readUint32(9)    |
+ |10| 10| 0x00| requestedVolume (byte 2)   | (4B)     | [little-endian]  |
+ |11| 11| 0x00| requestedVolume (byte 3)   |          |                  |
+ |12| 12| 0x00| requestedVolume (byte 4)   |          |                  |
+ +--+---+-----+----------------------------+---------+------------------+
+ |13| 13| 0x00| bolusSourceId              | int (1B) | raw[13]          |
+ +--+---+-----+----------------------------+---------+------------------+
+ |14| 14| 0x00| bolusTypeBitmask           | int (1B) | raw[14]          |
+ +--+---+-----+----------------------------+---------+------------------+
+
+================================================================================
+MEMORY MAP (ASCII ART)
+================================================================================
+
+OFFSET: 0    1    2    3    4    5    6    7    8    9   10   11   12   13   14
+        +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+FIELD:  |SID | BOLUS_ID  | PAD| PAD| TIMESTAMP (4B)          | REQ_VOL (4B)         |
+        +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+        |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+TYPE:   | B  | LE | LE | 00 | 00 | LE | LE | LE | LE | LE | LE | LE | LE | B  | B  |
+        |    | (16)   |    |    |    (32)        |    (32)         |    |    |    |
+        +----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+                                                                      |    |
+                                                                      +----+----+
+                                                                      |SRC |BIT |
+                                                                      +----+----+
+
+
+Legend:
+  B   = Single Byte (unsigned)
+  LE  = Little-Endian (part of multi-byte value)
+  00  = Zero padding byte
+  16  = 16-bit unsigned short
+  32  = 32-bit unsigned int
+  SID = statusId
+  PAD = Padding
+  SRC = bolusSourceId
+  BIT = bolusTypeBitmask
+
+
+================================================================================
+PARSE OPERATION (READ FROM BYTES)
+================================================================================
+
+STEP 1: Extract statusId (1 byte at offset 0)
+   statusId = payload[0]
+   
+STEP 2: Extract bolusId (2 bytes at offset 1-2, little-endian)
+   bolusId = payload[1] | (payload[2] << 8)
+   Python: read_uint16_le(payload, 1)
+   
+STEP 3: Skip padding (2 bytes at offset 3-4)
+   [These bytes are ignored during parsing]
+   
+STEP 4: Extract timestamp (4 bytes at offset 5-8, little-endian)
+   timestamp = payload[5] | (payload[6] << 8) | (payload[7] << 16) | (payload[8] << 24)
+   Python: read_uint32_le(payload, 5)
+   
+STEP 5: Extract requestedVolume (4 bytes at offset 9-12, little-endian)
+   requestedVolume = payload[9] | (payload[10] << 8) | (payload[11] << 16) | (payload[12] << 24)
+   Python: read_uint32_le(payload, 9)
+   
+STEP 6: Extract bolusSourceId (1 byte at offset 13)
+   bolusSourceId = payload[13]
+   
+STEP 7: Extract bolusTypeBitmask (1 byte at offset 14)
+   bolusTypeBitmask = payload[14]
+
+
+================================================================================
+BUILD OPERATION (WRITE TO BYTES)
+================================================================================
+
+STEP 1: Status ID (1 byte at offset 0)
+   bytes[0] = (status_id & 0xFF)
+   
+STEP 2: Bolus ID (2 bytes at offset 1-2, little-endian)
+   bytes[1] = (bolus_id & 0xFF)
+   bytes[2] = ((bolus_id >> 8) & 0xFF)
+   Python: write_uint16_le(bolus_id)
+   
+STEP 3: Padding (2 bytes at offset 3-4)
+   bytes[3] = 0x00
+   bytes[4] = 0x00
+   Python: bytes([0, 0])
+   
+STEP 4: Timestamp (4 bytes at offset 5-8, little-endian)
+   bytes[5] = (timestamp & 0xFF)
+   bytes[6] = ((timestamp >> 8) & 0xFF)
+   bytes[7] = ((timestamp >> 16) & 0xFF)
+   bytes[8] = ((timestamp >> 24) & 0xFF)
+   Python: write_uint32_le(timestamp)
+   
+STEP 5: Requested Volume (4 bytes at offset 9-12, little-endian)
+   bytes[9]  = (requested_volume & 0xFF)
+   bytes[10] = ((requested_volume >> 8) & 0xFF)
+   bytes[11] = ((requested_volume >> 16) & 0xFF)
+   bytes[12] = ((requested_volume >> 24) & 0xFF)
+   Python: write_uint32_le(requested_volume)
+   
+STEP 6: Bolus Source ID (1 byte at offset 13)
+   bytes[13] = (bolus_source_id & 0xFF)
+   
+STEP 7: Bolus Type Bitmask (1 byte at offset 14)
+   bytes[14] = (bolus_type_bitmask & 0xFF)
+
+
+================================================================================
+EXAMPLE DATA
+================================================================================
+
+Scenario: Active bolus delivery request
+  Status: REQUESTING (2)
+  Bolus ID: 256 (0x0100 in little-endian = 0x00, 0x01)
+  Timestamp: 1000000000 seconds since Jan 1, 2008
+  Requested Volume: 50000 (5.00 units)
+  Bolus Source: 1
+  Bolus Type: 3
+
+Byte Values:
+  Offset 0:  0x02                           [statusId = 2]
+  Offset 1:  0x00                           [bolusId low byte]
+  Offset 2:  0x01                           [bolusId high byte]
+  Offset 3:  0x00                           [padding]
+  Offset 4:  0x00                           [padding]
+  Offset 5:  0x40 (64)                      [timestamp byte 1]
+  Offset 6:  0x42 (66)                      [timestamp byte 2]
+  Offset 7:  0x0F (15)                      [timestamp byte 3]
+  Offset 8:  0x3B (59)                      [timestamp byte 4]
+  Offset 9:  0x50 (80)                      [requestedVolume byte 1]
+  Offset 10: 0xC3 (195)                     [requestedVolume byte 2]
+  Offset 11: 0x00 (0)                       [requestedVolume byte 3]
+  Offset 12: 0x00 (0)                       [requestedVolume byte 4]
+  Offset 13: 0x01                           [bolusSourceId = 1]
+  Offset 14: 0x03                           [bolusTypeBitmask = 3]
+
+Hex String: 02 00 01 00 00 40 42 0F 3B 50 C3 00 00 01 03
+
+
+================================================================================
+STRUCT PACK/UNPACK (Python)
+================================================================================
+
+Read 16-bit unsigned (little-endian):
+  import struct
+  value = struct.unpack_from("<H", data, offset)[0]
+
+Read 32-bit unsigned (little-endian):
+  import struct
+  value = struct.unpack_from("<I", data, offset)[0]
+
+Write 16-bit unsigned (little-endian):
+  import struct
+  data = struct.pack("<H", value)
+
+Write 32-bit unsigned (little-endian):
+  import struct
+  data = struct.pack("<I", value)
+
+
+================================================================================
+VALIDATION RULES
+================================================================================
+
+1. Payload must be exactly 15 bytes
+   if len(payload) != 15:
+       raise ValueError("Invalid payload size")
+
+2. Valid Bolus Status:
+   if (status == ALREADY_DELIVERED_OR_INVALID and
+       bolus_id == 0 and
+       timestamp == 0):
+       is_valid = False
+   else:
+       is_valid = True
+
+
+================================================================================
