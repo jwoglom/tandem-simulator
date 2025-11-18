@@ -16,7 +16,7 @@ A Bluetooth Low Energy (BLE) simulator that emulates a Tandem Mobi insulin pump,
 
 ## Project Status
 
-**Current Milestone: 2 (Core Protocol) - Complete**
+**Current Milestone: 3 (Authentication and Pairing) - Complete**
 
 This project is under active development. See [PLAN.md](PLAN.md) for the complete implementation roadmap.
 
@@ -35,7 +35,14 @@ This project is under active development. See [PLAN.md](PLAN.md) for the complet
   - Authentication message classes (stubs for JPake)
   - Status message classes (API version, battery, etc.)
   - Comprehensive test suite (29 tests passing)
-- 🔲 **Milestone 3**: Authentication and pairing
+- ✅ **Milestone 3**: Authentication and pairing
+  - Full JPake (J-PAKE) protocol implementation using elliptic curve cryptography
+  - JPake message classes for 4-round key exchange (Jpake1a/1b/2/3/4)
+  - Pairing code management with timeout and attempt limiting
+  - Session management with persistence to disk
+  - Authentication flow coordinator (Authenticator class)
+  - Challenge-response message handlers
+  - Comprehensive authentication test suite (25+ tests)
 - 🔲 **Milestone 4**: Request/response handling
 - 🔲 **Milestone 5**: Terminal User Interface
 - 🔲 **Milestone 6**: Advanced features and polish

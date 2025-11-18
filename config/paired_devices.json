@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "saved_at": "2025-11-18T05:59:58.106879",
+  "sessions": {
+    "AA:BB:CC:DD:EE:FF": {
+      "device_address": "AA:BB:CC:DD:EE:FF",
+      "session_key_b64": "hFnO01WHLXOoZzTcrg7QhLyQz3yNvch97CvKuEZ4cbg=",
+      "paired_at": "2025-11-18T05:59:58.106868",
+      "device_name": null,
+      "last_connected": "2025-11-18T05:59:58.106873"
+    }
+  }
+}
