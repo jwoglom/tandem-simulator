@@ -10,6 +10,7 @@ PyGObject>=3.42.0
 
 # Cryptography (Milestone 2-3)
 # For HMAC, JPake, and message signing
+# Includes elliptic curve support for JPake implementation
 cryptography>=41.0.0
 
 # Terminal UI (Milestone 5)
