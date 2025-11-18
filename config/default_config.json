@@ -1,0 +1,38 @@
+{
+  "pump": {
+    "serial_number": "00000000",
+    "model_number": "Mobi",
+    "firmware_version": "7.7.1",
+    "manufacturer": "Tandem Diabetes Care"
+  },
+  "state": {
+    "battery_percent": 100,
+    "current_basal_rate": 0.85,
+    "basal_active": true,
+    "bolus_active": false,
+    "reservoir_volume": 300.0,
+    "insulin_on_board": 0.0,
+    "suspended": false,
+    "cgm_enabled": false,
+    "cgm_glucose": null,
+    "cgm_trend": null
+  },
+  "bluetooth": {
+    "discoverable": true,
+    "connectable": true,
+    "device_name_prefix": "tslim X2",
+    "advertisement_interval": 100
+  },
+  "logging": {
+    "level": "INFO",
+    "log_ble_events": true,
+    "log_messages": true,
+    "log_to_file": false,
+    "log_file_path": "logs/simulator.log"
+  },
+  "behavior": {
+    "auto_generate_events": false,
+    "event_frequency": 300,
+    "response_delay_ms": 0
+  }
+}

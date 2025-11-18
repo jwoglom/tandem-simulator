@@ -1,2 +1,256 @@
-# tandem-simulator
-Tandem pump simulator, designed for Raspberry Pi Zero 2W
+# Tandem Mobi Insulin Pump Simulator
+
+A Bluetooth Low Energy (BLE) simulator that emulates a Tandem Mobi insulin pump, designed to run on a Raspberry Pi Zero 2W for development and testing of Android (ControlX2/PumpX2) and iOS (TandemKit) applications.
+
+[![CI](https://github.com/jwoglom/tandem-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/jwoglom/tandem-simulator/actions/workflows/ci.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
+## Features
+
+- **BLE Peripheral Emulation**: Simulates a Tandem pump as a BLE peripheral with all required GATT services and characteristics
+- **Protocol Implementation**: Implements the Tandem pump protocol including message parsing, authentication, and response generation
+- **Configurable State**: Configurable pump state (battery, basal rate, reservoir, etc.) for testing various scenarios
+- **Terminal UI**: Interactive TUI for monitoring and controlling the simulator (Milestone 5)
+- **Raspberry Pi Optimized**: Designed to run efficiently on Raspberry Pi Zero 2W hardware
+
+## Project Status
+
+**Current Milestone: 1 (Foundation)**
+
+This project is under active development. See [PLAN.md](PLAN.md) for the complete implementation roadmap.
+
+### Milestone Progress
+
+- ✅ **Milestone 1**: BLE peripheral infrastructure (in progress)
+  - Basic Python project structure
+  - Stub implementations for all major components
+  - CI/CD pipeline configured
+  - Unit tests framework
+- 🔲 **Milestone 2**: Message protocol implementation
+- 🔲 **Milestone 3**: Authentication and pairing
+- 🔲 **Milestone 4**: Request/response handling
+- 🔲 **Milestone 5**: Terminal User Interface
+- 🔲 **Milestone 6**: Advanced features and polish
+
+## Quick Start
+
+### Installation
+
+#### On Development Machine (Linux/macOS)
+
+```bash
+# Clone the repository
+git clone https://github.com/jwoglom/tandem-simulator.git
+cd tandem-simulator
+
+# Install dependencies
+pip install -r requirements.txt
+
+# For development
+pip install -r requirements-dev.txt
+
+# Run the simulator
+python simulator.py --help
+```
+
+#### On Raspberry Pi Zero 2W
+
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install -y \
+    python3-pip \
+    python3-dev \
+    libdbus-1-dev \
+    libglib2.0-dev \
+    libgirepository1.0-dev \
+    libcairo2-dev \
+    pkg-config \
+    bluez
+
+# Clone and install
+git clone https://github.com/jwoglom/tandem-simulator.git
+cd tandem-simulator
+pip3 install -r requirements.txt
+
+# Run the simulator
+python3 simulator.py
+```
+
+### Usage
+
+```bash
+# Run with default settings
+python simulator.py
+
+# Specify a serial number
+python simulator.py --serial 12345678
+
+# Enable debug logging
+python simulator.py --debug
+
+# Run with Terminal UI (Milestone 5)
+python simulator.py --tui
+```
+
+## Project Structure
+
+```
+tandem-simulator/
+├── simulator.py              # Main entry point
+├── tandem_simulator/         # Main package
+│   ├── ble/                  # BLE peripheral implementation
+│   │   ├── peripheral.py     # Core BLE peripheral
+│   │   ├── gatt_server.py    # GATT services and characteristics
+│   │   ├── advertisement.py  # BLE advertisement
+│   │   └── connection.py     # Connection management
+│   ├── protocol/             # Protocol implementation
+│   │   ├── message.py        # Message base classes
+│   │   ├── packetizer.py     # Packet assembly/disassembly
+│   │   ├── crc.py           # CRC16 calculation
+│   │   └── crypto.py        # Cryptographic utilities
+│   ├── authentication/       # Authentication/pairing
+│   │   ├── jpake.py         # JPake protocol
+│   │   ├── pairing.py       # Pairing code management
+│   │   └── session.py       # Session management
+│   ├── handlers/            # Request handlers
+│   │   ├── request_handler.py
+│   │   ├── status.py        # Status request handlers
+│   │   └── control.py       # Control request handlers
+│   ├── state/               # Pump state management
+│   │   ├── pump_state.py    # State model
+│   │   └── persistence.py   # State persistence
+│   ├── tui/                 # Terminal UI
+│   │   └── app.py          # TUI application
+│   └── utils/               # Utilities
+│       ├── logger.py        # Logging infrastructure
+│       └── constants.py     # Constants and UUIDs
+├── tests/                   # Test suite
+├── config/                  # Configuration files
+├── .github/workflows/       # CI/CD workflows
+├── requirements.txt         # Production dependencies
+├── requirements-dev.txt     # Development dependencies
+├── setup.py                # Package setup
+├── pyproject.toml          # Modern Python packaging
+└── PLAN.md                 # Implementation plan
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=tandem_simulator --cov-report=term-missing
+
+# Run specific test file
+pytest tests/test_basic.py -v
+```
+
+### Code Quality
+
+```bash
+# Format code
+black tandem_simulator simulator.py
+
+# Sort imports
+isort tandem_simulator simulator.py
+
+# Lint
+flake8 tandem_simulator
+
+# Type check
+mypy tandem_simulator
+```
+
+### Building
+
+```bash
+# Build package
+python -m build
+
+# Install locally in development mode
+pip install -e .
+```
+
+## Configuration
+
+The simulator can be configured via `config/default_config.json`:
+
+```json
+{
+  "pump": {
+    "serial_number": "00000000",
+    "model_number": "Mobi",
+    "firmware_version": "7.7.1"
+  },
+  "state": {
+    "battery_percent": 100,
+    "current_basal_rate": 0.85,
+    "reservoir_volume": 300.0
+  },
+  "bluetooth": {
+    "discoverable": true,
+    "device_name_prefix": "tslim X2"
+  }
+}
+```
+
+## Technical Details
+
+### BLE Protocol
+
+The simulator implements the Tandem pump BLE protocol:
+
+- **Primary Service**: `0000fdfb-0000-1000-8000-00805f9b34fb`
+- **Device Information Service**: Standard BLE DIS
+- **Authentication**: JPake key exchange with pairing codes
+- **Message Protocol**: Custom message format with CRC16 checksums and HMAC signing
+
+See [PLAN.md](PLAN.md) for complete protocol details.
+
+### Hardware Requirements
+
+- **Raspberry Pi Zero 2W** (or any Pi with Bluetooth)
+- MicroSD card (16GB+ recommended)
+- Power supply
+- (Optional) USB-to-serial adapter for debugging
+
+### Software Requirements
+
+- **OS**: Raspberry Pi OS Lite (Debian 12 Bookworm or later)
+- **Python**: 3.9+
+- **BlueZ**: 5.50+
+- **Dependencies**: See `requirements.txt`
+
+## Related Projects
+
+- **[PumpX2](https://github.com/jwoglom/pumpx2)**: Android library for Tandem pump communication
+- **[ControlX2](https://github.com/jwoglom/controlx2)**: Android app for pump control
+- **[TandemKit](https://github.com/jwoglom/TandemKit)**: iOS library for Tandem pump communication
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This simulator is for **development and testing purposes only**. It is not a medical device and should never be used for actual diabetes management or insulin delivery.
+
+## Acknowledgments
+
+This project is based on analysis of the [PumpX2](https://github.com/jwoglom/pumpx2) Android library and aims to facilitate development and testing of applications that communicate with Tandem insulin pumps.
