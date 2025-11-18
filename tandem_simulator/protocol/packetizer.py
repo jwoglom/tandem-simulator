@@ -23,7 +23,6 @@ from tandem_simulator.protocol.crc import verify_and_strip_crc16
 from tandem_simulator.utils.constants import (
     CONTROL_CHUNK_SIZE,
     DEFAULT_CHUNK_SIZE,
-    HMAC_SIZE,
     MESSAGE_HEADER_SIZE,
 )
 

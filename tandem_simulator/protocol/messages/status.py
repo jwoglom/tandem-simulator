@@ -6,7 +6,6 @@ querying pump state and information.
 Milestone 2 deliverable (stub implementations - full handlers in Milestone 4).
 """
 
-import struct
 from tandem_simulator.protocol.message import Message, MessageRegistry
 
 

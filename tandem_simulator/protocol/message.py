@@ -93,7 +93,8 @@ class Message:
         """
         if len(data) < MESSAGE_HEADER_SIZE:
             raise ValueError(
-                f"Insufficient data for message: got {len(data)} bytes, need at least {MESSAGE_HEADER_SIZE}"
+                f"Insufficient data for message: got {len(data)} bytes, "
+                f"need at least {MESSAGE_HEADER_SIZE}"
             )
 
         # Parse header
@@ -242,7 +243,7 @@ class MessageRegistry:
             ValueError: If data is invalid
         """
         if len(data) < MESSAGE_HEADER_SIZE:
-            raise ValueError(f"Insufficient data for message header")
+            raise ValueError("Insufficient data for message header")
 
         # Extract opcode
         opcode = data[0]

@@ -6,7 +6,6 @@ JPake pairing and challenge-response flows.
 Milestone 2 deliverable (stub implementations - full JPake in Milestone 3).
 """
 
-import struct
 from tandem_simulator.protocol.message import Message, MessageRegistry
 
 
