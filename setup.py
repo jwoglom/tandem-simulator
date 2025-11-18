@@ -13,7 +13,13 @@ def read_file(filename):
 def read_requirements(filename):
     """Read requirements from a file."""
     with open(filename, encoding='utf-8') as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        return [
+            line.strip()
+            for line in f
+            if line.strip()
+            and not line.startswith('#')
+            and not line.startswith('-r')  # Skip -r includes
+        ]
 
 setup(
     name="tandem-simulator",
