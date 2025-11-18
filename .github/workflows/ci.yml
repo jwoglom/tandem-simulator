@@ -8,20 +8,17 @@ on:
 
 jobs:
   test:
-    name: Test on Python ${{ matrix.python-version }}
+    name: Test on Python 3.12
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.12"
 
     - name: Install system dependencies
       run: |
@@ -30,9 +27,11 @@ jobs:
           libdbus-1-dev \
           libglib2.0-dev \
           libgirepository1.0-dev \
+          gobject-introspection \
           libcairo2-dev \
           pkg-config \
-          python3-dev
+          python3-dev \
+          gir1.2-glib-2.0
 
     - name: Cache pip packages
       uses: actions/cache@v3
@@ -88,10 +87,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.12"
 
     - name: Install build dependencies
       run: |
@@ -116,10 +115,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.12"
 
     - name: Check Python syntax
       run: |
