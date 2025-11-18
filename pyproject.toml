@@ -10,7 +10,7 @@ readme = "README.md"
 authors = [
     { name = "Tandem Simulator Project" }
 ]
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -22,7 +22,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: POSIX :: Linux",
 ]
 dependencies = [
@@ -83,7 +82,7 @@ addopts = "-v --cov=tandem_simulator --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["tandem_simulator"]
-omit = ["tests/*", "setup.py"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 exclude_lines = [
