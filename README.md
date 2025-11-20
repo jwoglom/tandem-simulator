@@ -16,7 +16,7 @@ A Bluetooth Low Energy (BLE) simulator that emulates a Tandem Mobi insulin pump,
 
 ## Project Status
 
-**Current Milestone: 3 (Authentication and Pairing) - Complete**
+**Current Milestone: 4 (Request/Response Handling) - Complete**
 
 This project is under active development. See [PLAN.md](PLAN.md) for the complete implementation roadmap.
 
@@ -43,7 +43,15 @@ This project is under active development. See [PLAN.md](PLAN.md) for the complet
   - Authentication flow coordinator (Authenticator class)
   - Challenge-response message handlers
   - Comprehensive authentication test suite (25+ tests)
-- 🔲 **Milestone 4**: Request/response handling
+- ✅ **Milestone 4**: Request/response handling
+  - Request handler framework with routing and error handling
+  - Status request handlers (battery, basal, bolus, insulin, API version, pump version)
+  - Control request handlers (stub: bolus, suspend, resume)
+  - History log handlers (stub implementation)
+  - Qualifying events (alerts, alarms, notifications)
+  - Pump state management with persistence to disk
+  - Default state configuration (JSON)
+  - Comprehensive test suite (30+ tests for handlers and state)
 - 🔲 **Milestone 5**: Terminal User Interface
 - 🔲 **Milestone 6**: Advanced features and polish
 

@@ -10,6 +10,8 @@ import logging
 from typing import Callable, Dict, Optional
 
 from tandem_simulator.handlers.control import ControlHandlers
+from tandem_simulator.handlers.events import EventHandlers
+from tandem_simulator.handlers.history import HistoryHandlers
 from tandem_simulator.handlers.status import StatusHandlers
 from tandem_simulator.protocol.message import Message
 from tandem_simulator.state.pump_state import PumpStateManager
@@ -32,6 +34,8 @@ class RequestHandler:
         # Initialize handler classes
         self.status_handlers = StatusHandlers(state_manager)
         self.control_handlers = ControlHandlers(state_manager)
+        self.history_handlers = HistoryHandlers(state_manager)
+        self.event_handlers = EventHandlers(state_manager)
 
         # Register status request handlers
         self._register_status_handlers()
