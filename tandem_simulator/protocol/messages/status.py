@@ -10,6 +10,7 @@ Milestone 4 implementation.
 """
 
 import struct
+
 from tandem_simulator.protocol.message import Message, MessageRegistry
 
 
@@ -24,7 +25,8 @@ def read_uint16_le(data: bytes, offset: int = 0) -> int:
     Returns:
         Unsigned 16-bit integer
     """
-    return struct.unpack_from("<H", data, offset)[0]
+    value: int = struct.unpack_from("<H", data, offset)[0]
+    return value
 
 
 def read_uint32_le(data: bytes, offset: int = 0) -> int:
@@ -37,7 +39,8 @@ def read_uint32_le(data: bytes, offset: int = 0) -> int:
     Returns:
         Unsigned 32-bit integer
     """
-    return struct.unpack_from("<I", data, offset)[0]
+    value: int = struct.unpack_from("<I", data, offset)[0]
+    return value
 
 
 def read_int16_le(data: bytes, offset: int = 0) -> int:
@@ -50,7 +53,8 @@ def read_int16_le(data: bytes, offset: int = 0) -> int:
     Returns:
         Signed 16-bit integer
     """
-    return struct.unpack_from("<h", data, offset)[0]
+    value: int = struct.unpack_from("<h", data, offset)[0]
+    return value
 
 
 def write_uint16_le(value: int) -> bytes:

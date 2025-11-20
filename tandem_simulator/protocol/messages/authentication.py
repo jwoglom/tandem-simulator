@@ -18,7 +18,8 @@ from tandem_simulator.protocol.message import Message, MessageRegistry
 # Utility functions for little-endian encoding/decoding
 def read_uint16_le(data: bytes, offset: int = 0) -> int:
     """Read a 16-bit unsigned integer in little-endian format."""
-    return struct.unpack_from("<H", data, offset)[0]
+    value: int = struct.unpack_from("<H", data, offset)[0]
+    return value
 
 
 def write_uint16_le(value: int) -> bytes:
@@ -199,9 +200,7 @@ class PumpChallengeResponse(Message):
 
     opcode = 19
 
-    def __init__(
-        self, transaction_id: int = 0, app_instance_id: int = 0, success: bool = False
-    ):
+    def __init__(self, transaction_id: int = 0, app_instance_id: int = 0, success: bool = False):
         """Initialize pump challenge response.
 
         Args:
@@ -454,9 +453,7 @@ class Jpake2Request(Message):
 
     opcode = 36
 
-    def __init__(
-        self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""
-    ):
+    def __init__(self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""):
         """Initialize Jpake2 request.
 
         Args:
@@ -498,9 +495,7 @@ class Jpake2Response(Message):
 
     opcode = 37
 
-    def __init__(
-        self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""
-    ):
+    def __init__(self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""):
         """Initialize Jpake2 response.
 
         Args:

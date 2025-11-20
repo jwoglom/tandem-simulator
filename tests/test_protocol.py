@@ -21,8 +21,8 @@ from tandem_simulator.protocol.messages.authentication import (
 from tandem_simulator.protocol.messages.status import (
     ApiVersionRequest,
     ApiVersionResponse,
-    CurrentBatteryV1Response,
     CurrentBasalStatusResponse,
+    CurrentBatteryV1Response,
     CurrentBolusStatusResponse,
     InsulinStatusResponse,
     PumpVersionResponse,

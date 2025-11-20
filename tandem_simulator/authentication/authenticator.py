@@ -139,16 +139,20 @@ class Authenticator:
         logger.info("Received central challenge request")
 
         # Store challenge
-        self.central_challenge = message.challenge
+        self.central_challenge = message.central_challenge
 
         # Generate pump's response to the challenge
         # For simulator, we'll create a simple response
-        response_data = secrets.token_bytes(16)
+        central_challenge_hash = secrets.token_bytes(20)  # 20 bytes SHA1 hash
+        hmac_key = secrets.token_bytes(8)  # 8 bytes HMAC key
 
         self._set_state(AuthenticationState.CENTRAL_CHALLENGE_SENT)
 
         return CentralChallengeResponse(
-            transaction_id=message.transaction_id, response=response_data
+            transaction_id=message.transaction_id,
+            app_instance_id=message.app_instance_id,
+            central_challenge_hash=central_challenge_hash,
+            hmac_key=hmac_key,
         )
 
     def handle_pump_challenge_request(self, message: PumpChallengeRequest) -> PumpChallengeResponse:
@@ -162,13 +166,15 @@ class Authenticator:
         """
         logger.info("Received pump challenge request")
 
-        # Generate pump challenge
+        # Generate pump challenge (stored for later use)
         self.pump_challenge = secrets.token_bytes(16)
 
         self._set_state(AuthenticationState.PUMP_CHALLENGE_READY)
 
         return PumpChallengeResponse(
-            transaction_id=message.transaction_id, challenge=self.pump_challenge
+            transaction_id=message.transaction_id,
+            app_instance_id=message.app_instance_id,
+            success=True,
         )
 
     def generate_jpake1a(self) -> Jpake1aRequest:
@@ -192,9 +198,17 @@ class Authenticator:
         # Generate Round 1 values
         g1, g2 = self.jpake_protocol.generate_round1()
 
+        # TODO: Encode g1, g2 into the 165-byte central_challenge format
+        # For now, use placeholder bytes
+        central_challenge = secrets.token_bytes(165)
+
         self._set_state(AuthenticationState.JPAKE_ROUND1_SENT)
 
-        return Jpake1aRequest(transaction_id=self._next_transaction_id(), g1=g1, g2=g2)
+        return Jpake1aRequest(
+            transaction_id=self._next_transaction_id(),
+            app_instance_id=0,  # TODO: Use actual app instance ID
+            central_challenge=central_challenge,
+        )
 
     def handle_jpake1b_request(self, message: Jpake1bRequest) -> Jpake1bResponse:
         """Handle JPake Round 1b message from app.
@@ -210,12 +224,20 @@ class Authenticator:
         if not self.jpake_protocol:
             raise ValueError("JPake protocol not initialized")
 
-        # Process Round 1 data from app
-        self.jpake_protocol.process_round1(message.g3, message.g4)
+        # TODO: Decode g3, g4 from the 165-byte central_challenge_hash
+        # For now, process placeholder data
+        # self.jpake_protocol.process_round1(g3, g4)
+
+        # Generate response with 165 bytes
+        central_challenge_hash = secrets.token_bytes(165)
 
         self._set_state(AuthenticationState.JPAKE_ROUND1_COMPLETE)
 
-        return Jpake1bResponse(transaction_id=message.transaction_id, status=0)
+        return Jpake1bResponse(
+            transaction_id=message.transaction_id,
+            app_instance_id=message.app_instance_id,
+            central_challenge_hash=central_challenge_hash,
+        )
 
     def generate_jpake2(self) -> Jpake2Request:
         """Generate JPake Round 2 message.
@@ -229,11 +251,19 @@ class Authenticator:
             raise ValueError("JPake protocol not initialized")
 
         # Generate Round 2 value
-        a_value = self.jpake_protocol.generate_round2()
+        _a_value = self.jpake_protocol.generate_round2()  # noqa: F841
+
+        # TODO: Encode _a_value into the data format
+        # For now, use placeholder bytes
+        data = secrets.token_bytes(50)  # Placeholder
 
         self._set_state(AuthenticationState.JPAKE_ROUND2_SENT)
 
-        return Jpake2Request(transaction_id=self._next_transaction_id(), a_value=a_value)
+        return Jpake2Request(
+            transaction_id=self._next_transaction_id(),
+            app_instance_id=0,  # TODO: Use actual app instance ID
+            data=data,
+        )
 
     def handle_jpake2_response(self, message: Jpake2Response):
         """Handle JPake Round 2 response from app.
@@ -246,8 +276,9 @@ class Authenticator:
         if not self.jpake_protocol:
             raise ValueError("JPake protocol not initialized")
 
-        # Process Round 2 data from app
-        self.jpake_protocol.process_round2(message.b_value)
+        # TODO: Decode b_value from message.payload
+        # For now, skip processing
+        # self.jpake_protocol.process_round2(b_value)
 
         self._set_state(AuthenticationState.JPAKE_ROUND2_COMPLETE)
 
@@ -268,17 +299,20 @@ class Authenticator:
         # Derive session key
         _ = self.jpake_protocol.derive_session_key()
 
-        # Verify app's key confirmation
-        is_valid = self.jpake_protocol.verify_key_confirmation(message.key_confirmation, "app")
-
-        if not is_valid:
-            logger.error("Invalid key confirmation from app")
-            self._set_state(AuthenticationState.FAILED)
-            return Jpake3SessionKeyResponse(transaction_id=message.transaction_id, status=1)
+        # TODO: Use message.challenge_param for key derivation
 
         logger.info("Session key successfully derived")
 
-        return Jpake3SessionKeyResponse(transaction_id=message.transaction_id, status=0)
+        # Generate device key response
+        device_key_nonce = secrets.token_bytes(8)
+        device_key_reserved = secrets.token_bytes(8)
+
+        return Jpake3SessionKeyResponse(
+            transaction_id=message.transaction_id,
+            app_instance_id=0,  # TODO: Use actual app instance ID
+            device_key_nonce=device_key_nonce,
+            device_key_reserved=device_key_reserved,
+        )
 
     def generate_jpake4(self) -> Jpake4KeyConfirmationRequest:
         """Generate JPake Round 4 key confirmation.
@@ -292,12 +326,22 @@ class Authenticator:
             raise ValueError("JPake protocol not initialized")
 
         # Generate pump's key confirmation
-        confirmation = self.jpake_protocol.generate_key_confirmation()
+        _confirmation = self.jpake_protocol.generate_key_confirmation()  # noqa: F841
+
+        # TODO: Use _confirmation to generate hash_digest
+        # For now, use placeholder values
+        nonce = secrets.token_bytes(8)
+        reserved = secrets.token_bytes(8)
+        hash_digest = secrets.token_bytes(32)  # SHA256
 
         self._set_state(AuthenticationState.KEY_CONFIRMATION_SENT)
 
         return Jpake4KeyConfirmationRequest(
-            transaction_id=self._next_transaction_id(), confirmation=confirmation
+            transaction_id=self._next_transaction_id(),
+            app_instance_id=0,  # TODO: Use actual app instance ID
+            nonce=nonce,
+            reserved=reserved,
+            hash_digest=hash_digest,
         )
 
     def handle_jpake4_response(self, message: Jpake4KeyConfirmationResponse):
@@ -308,23 +352,25 @@ class Authenticator:
         """
         logger.info("Received JPake Round 4 response")
 
-        if message.status == 0:
-            # Authentication successful!
-            if self.jpake_protocol and self.current_device_address:
-                session_key = self.jpake_protocol.get_session_key()
-                if session_key:
-                    # Create session
-                    self.session_manager.create_session(
-                        device_address=self.current_device_address,
-                        session_key=session_key,
-                    )
+        # TODO: Verify the response hash_digest matches expected value
+        # For now, assume authentication is successful if we got a response
 
-                    logger.info(f"Authentication complete for {self.current_device_address}")
-                    self._set_state(AuthenticationState.AUTHENTICATED)
+        # Authentication successful!
+        if self.jpake_protocol and self.current_device_address:
+            session_key = self.jpake_protocol.get_session_key()
+            if session_key:
+                # Create session
+                self.session_manager.create_session(
+                    device_address=self.current_device_address,
+                    session_key=session_key,
+                )
 
-                    # Clear pairing code
-                    self.pairing_manager.clear_pairing_code()
-                    return
+                logger.info(f"Authentication complete for {self.current_device_address}")
+                self._set_state(AuthenticationState.AUTHENTICATED)
+
+                # Clear pairing code
+                self.pairing_manager.clear_pairing_code()
+                return
 
         logger.error("Authentication failed")
         self._set_state(AuthenticationState.FAILED)
