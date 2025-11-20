@@ -1,0 +1,25 @@
+{
+  "tui": {
+    "dark_mode": true,
+    "auto_start_ble": false,
+    "refresh_interval": 1.0,
+    "log_level": "INFO",
+    "show_timestamps": true
+  },
+  "display": {
+    "default_tab": "dashboard",
+    "show_header": true,
+    "show_footer": true,
+    "show_clock": true
+  },
+  "event_generator": {
+    "auto_generate_events": false,
+    "event_interval": 60
+  },
+  "logging": {
+    "max_log_entries": 1000,
+    "auto_scroll": true,
+    "log_to_file": false,
+    "log_file_path": "logs/tui.log"
+  }
+}
