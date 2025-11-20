@@ -2,7 +2,7 @@
 
 This module maintains the internal state of the simulated pump.
 
-Milestone 4 deliverable (stub).
+Milestone 4 deliverable.
 """
 
 from dataclasses import dataclass
@@ -45,9 +45,13 @@ class PumpState:
 class PumpStateManager:
     """Manages pump state and state transitions."""
 
-    def __init__(self):
-        """Initialize the pump state manager."""
-        self.state = PumpState()
+    def __init__(self, initial_state: Optional[PumpState] = None):
+        """Initialize the pump state manager.
+
+        Args:
+            initial_state: Initial pump state, or None to use defaults
+        """
+        self.state = initial_state if initial_state is not None else PumpState()
 
     def update_battery(self, percent: int):
         """Update battery percentage.
@@ -92,3 +96,11 @@ class PumpStateManager:
             Current PumpState
         """
         return self.state
+
+    def set_state(self, state: PumpState):
+        """Set the pump state.
+
+        Args:
+            state: New pump state
+        """
+        self.state = state

@@ -1,0 +1,16 @@
+{
+  "battery_percent": 100,
+  "current_basal_rate": 0.85,
+  "basal_active": true,
+  "bolus_active": false,
+  "bolus_amount": 0.0,
+  "bolus_delivered": 0.0,
+  "reservoir_volume": 300.0,
+  "insulin_on_board": 0.0,
+  "cgm_glucose": null,
+  "cgm_trend": null,
+  "suspended": false,
+  "time_since_reset": 0,
+  "serial_number": "00000000",
+  "firmware_version": "7.7.1"
+}
