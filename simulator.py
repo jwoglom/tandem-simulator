@@ -21,7 +21,6 @@ import argparse
 import logging
 import sys
 
-from tandem_simulator.ble.peripheral import BLEPeripheral
 from tandem_simulator.utils.constants import DEFAULT_SERIAL_NUMBER
 from tandem_simulator.utils.logger import get_logger
 
@@ -92,6 +91,9 @@ def main():
         logger.info("      BlueZ D-Bus integration not yet implemented")
         logger.info("      The peripheral will initialize but not actually advertise")
         logger.info("")
+
+        # Import BLE peripheral only when needed
+        from tandem_simulator.ble.peripheral import BLEPeripheral
 
         peripheral = BLEPeripheral(serial_number=args.serial)
 
