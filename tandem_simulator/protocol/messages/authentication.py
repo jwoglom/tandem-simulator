@@ -3,575 +3,772 @@
 This module implements the authentication message types used in the
 JPake pairing and challenge-response flows.
 
-Milestone 2 deliverable (stub implementations - full JPake in Milestone 3).
+All message implementations match pumpx2 EXACTLY:
+https://github.com/jwoglom/pumpX2/tree/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/request/authentication
+https://github.com/jwoglom/pumpX2/tree/main/messages/src/main/java/com/jwoglom/pumpx2/pump/messages/response/authentication
+
+Milestone 4 implementation - exact pumpx2 compatibility.
 """
 
+import struct
+
 from tandem_simulator.protocol.message import Message, MessageRegistry
+
+
+# Utility functions for little-endian encoding/decoding
+def read_uint16_le(data: bytes, offset: int = 0) -> int:
+    """Read a 16-bit unsigned integer in little-endian format."""
+    return struct.unpack_from("<H", data, offset)[0]
+
+
+def write_uint16_le(value: int) -> bytes:
+    """Write a 16-bit unsigned integer in little-endian format."""
+    return struct.pack("<H", value)
+
+
+# =============================================================================
+# Challenge Messages (Opcodes 16-19)
+# =============================================================================
 
 
 class CentralChallengeRequest(Message):
     """Central challenge request message.
 
-    Opcode: 0x00 (example - verify with PumpX2)
+    Opcode: 16 (0x10)
+    Payload: 10 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-9: central_challenge (8 bytes fixed)
 
     Initiates authentication by sending a challenge from the central device.
     """
 
-    opcode = 0x00
+    opcode = 16
 
-    def __init__(self, transaction_id: int = 0, challenge: bytes = b""):
+    def __init__(
+        self, transaction_id: int = 0, app_instance_id: int = 0, central_challenge: bytes = b""
+    ):
         """Initialize central challenge request.
 
         Args:
             transaction_id: Transaction ID
-            challenge: Challenge data (typically 16 bytes)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge: Challenge data (exactly 8 bytes)
         """
         super().__init__(transaction_id)
-        self.challenge = challenge
+        self.app_instance_id = app_instance_id
+        self.central_challenge = central_challenge
 
     def parse_payload(self, payload: bytes) -> None:
         """Parse challenge from payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (10 bytes)
         """
-        self.challenge = payload
+        if len(payload) >= 10:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge = payload[2:10]
 
     def build_payload(self) -> bytes:
         """Build challenge payload.
 
         Returns:
-            Challenge bytes
+            10-byte payload (app_instance_id + 8-byte challenge)
         """
-        return self.challenge
+        # Ensure challenge is exactly 8 bytes
+        challenge = self.central_challenge[:8].ljust(8, b"\x00")
+        return write_uint16_le(self.app_instance_id) + challenge
 
 
 class CentralChallengeResponse(Message):
     """Central challenge response message.
 
-    Opcode: 0x01 (example - verify with PumpX2)
+    Opcode: 17 (0x11)
+    Payload: 30 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-21: central_challenge_hash (20 bytes)
+    - Bytes 22-29: hmac_key (8 bytes)
 
-    Response to central challenge with pump's challenge response.
+    Response to central challenge with hashed challenge and HMAC key.
     """
 
-    opcode = 0x01
+    opcode = 17
 
-    def __init__(self, transaction_id: int = 0, response: bytes = b""):
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        central_challenge_hash: bytes = b"",
+        hmac_key: bytes = b"",
+    ):
         """Initialize central challenge response.
 
         Args:
             transaction_id: Transaction ID
-            response: Challenge response data
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge_hash: SHA1 hash of challenge (20 bytes)
+            hmac_key: HMAC key (8 bytes)
         """
         super().__init__(transaction_id)
-        self.response = response
+        self.app_instance_id = app_instance_id
+        self.central_challenge_hash = central_challenge_hash
+        self.hmac_key = hmac_key
 
     def parse_payload(self, payload: bytes) -> None:
         """Parse response from payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (30 bytes)
         """
-        self.response = payload
+        if len(payload) >= 30:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge_hash = payload[2:22]
+            self.hmac_key = payload[22:30]
 
     def build_payload(self) -> bytes:
         """Build response payload.
 
         Returns:
-            Response bytes
+            30-byte payload (app_instance_id + hash + hmac_key)
         """
-        return self.response
+        # Ensure correct sizes
+        hash_data = self.central_challenge_hash[:20].ljust(20, b"\x00")
+        key_data = self.hmac_key[:8].ljust(8, b"\x00")
+        return write_uint16_le(self.app_instance_id) + hash_data + key_data
 
 
 class PumpChallengeRequest(Message):
     """Pump challenge request message.
 
-    Opcode: 0x02 (example - verify with PumpX2)
+    Opcode: 18 (0x12)
+    Payload: 22 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-21: pump_challenge_hash (20 bytes)
 
     Request challenge from pump during authentication.
     """
 
-    opcode = 0x02
+    opcode = 18
 
-    def __init__(self, transaction_id: int = 0):
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        pump_challenge_hash: bytes = b"",
+    ):
         """Initialize pump challenge request.
 
         Args:
             transaction_id: Transaction ID
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            pump_challenge_hash: SHA1 hash of pump challenge (20 bytes)
         """
         super().__init__(transaction_id)
+        self.app_instance_id = app_instance_id
+        self.pump_challenge_hash = pump_challenge_hash
+
+    def parse_payload(self, payload: bytes) -> None:
+        """Parse payload.
+
+        Args:
+            payload: Raw payload bytes (22 bytes)
+        """
+        if len(payload) >= 22:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.pump_challenge_hash = payload[2:22]
 
     def build_payload(self) -> bytes:
-        """Build empty payload.
+        """Build payload.
 
         Returns:
-            Empty bytes
+            22-byte payload (app_instance_id + 20-byte hash)
         """
-        return b""
+        hash_data = self.pump_challenge_hash[:20].ljust(20, b"\x00")
+        return write_uint16_le(self.app_instance_id) + hash_data
 
 
 class PumpChallengeResponse(Message):
     """Pump challenge response message.
 
-    Opcode: 0x03 (example - verify with PumpX2)
+    Opcode: 19 (0x13)
+    Payload: 3 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Byte 2: success (boolean, 0 or 1)
 
-    Response with pump's challenge data.
+    Response indicating success or failure of pump challenge.
     """
 
-    opcode = 0x03
+    opcode = 19
 
-    def __init__(self, transaction_id: int = 0, challenge: bytes = b""):
+    def __init__(
+        self, transaction_id: int = 0, app_instance_id: int = 0, success: bool = False
+    ):
         """Initialize pump challenge response.
 
         Args:
             transaction_id: Transaction ID
-            challenge: Pump's challenge data
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            success: Whether challenge was successful
         """
         super().__init__(transaction_id)
-        self.challenge = challenge
+        self.app_instance_id = app_instance_id
+        self.success = success
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse challenge from payload.
+        """Parse response from payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (3 bytes)
         """
-        self.challenge = payload
+        if len(payload) >= 3:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.success = bool(payload[2])
 
     def build_payload(self) -> bytes:
-        """Build challenge payload.
+        """Build response payload.
 
         Returns:
-            Challenge bytes
+            3-byte payload (app_instance_id + success byte)
         """
-        return self.challenge
+        return write_uint16_le(self.app_instance_id) + bytes([1 if self.success else 0])
 
 
-#
-# JPake Authentication Messages (Milestone 3)
-#
-# NOTE: Opcodes for JPake messages are assigned sequentially here.
-# These may need adjustment based on actual Tandem protocol analysis.
-#
+# =============================================================================
+# JPake Round 1 Messages (Opcodes 32-35)
+# =============================================================================
 
 
 class Jpake1aRequest(Message):
-    """JPake Round 1a request message (pump sends to app).
+    """JPake Round 1a request message.
 
-    Opcode: 0x10 (placeholder - verify with actual protocol)
+    Opcode: 32 (0x20)
+    Payload: 167 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-166: central_challenge (165 bytes fixed)
 
-    Round 1a: Pump sends its first ephemeral public keys (G1, G2) with ZKPs.
+    First round of JPake key exchange from central device.
     """
 
-    opcode = 0x10
+    opcode = 32
 
-    def __init__(self, transaction_id: int = 0, g1: bytes = b"", g2: bytes = b""):
-        """Initialize JPake round 1a request.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        central_challenge: bytes = b"",
+    ):
+        """Initialize Jpake1a request.
 
         Args:
             transaction_id: Transaction ID
-            g1: First ephemeral public key (G1 = g^x1)
-            g2: Second ephemeral public key (G2 = g^x2)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge: JPake challenge data (165 bytes fixed)
         """
         super().__init__(transaction_id)
-        self.g1 = g1
-        self.g2 = g2
+        self.app_instance_id = app_instance_id
+        self.central_challenge = central_challenge
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse JPake 1a payload.
-
-        Payload format: [g1_length(2)] [g1] [g2_length(2)] [g2]
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (167 bytes)
         """
-        if len(payload) < 4:
-            return
-
-        # Parse G1
-        g1_len = int.from_bytes(payload[0:2], "big")
-        g1_start = 2
-        g1_end = g1_start + g1_len
-        self.g1 = payload[g1_start:g1_end]
-
-        # Parse G2
-        if len(payload) > g1_end + 2:
-            g2_len = int.from_bytes(payload[g1_end : g1_end + 2], "big")
-            g2_start = g1_end + 2
-            g2_end = g2_start + g2_len
-            self.g2 = payload[g2_start:g2_end]
+        if len(payload) >= 167:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge = payload[2:167]
 
     def build_payload(self) -> bytes:
-        """Build JPake 1a payload.
+        """Build payload.
 
         Returns:
-            Payload bytes
+            167-byte payload (app_instance_id + 165-byte challenge)
         """
-        payload = b""
-        payload += len(self.g1).to_bytes(2, "big") + self.g1
-        payload += len(self.g2).to_bytes(2, "big") + self.g2
-        return payload
+        # Ensure challenge is exactly 165 bytes
+        challenge = self.central_challenge[:165].ljust(165, b"\x00")
+        return write_uint16_le(self.app_instance_id) + challenge
 
 
 class Jpake1aResponse(Message):
-    """JPake Round 1a response message (app acknowledges).
+    """JPake Round 1a response message.
 
-    Opcode: 0x11 (placeholder - verify with actual protocol)
+    Opcode: 33 (0x21)
+    Payload: 167 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-166: central_challenge_hash (165 bytes fixed)
 
-    Simple acknowledgment of round 1a.
+    Response to Jpake1a with hashed challenge data.
     """
 
-    opcode = 0x11
+    opcode = 33
 
-    def __init__(self, transaction_id: int = 0, status: int = 0):
-        """Initialize JPake round 1a response.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        central_challenge_hash: bytes = b"",
+    ):
+        """Initialize Jpake1a response.
 
         Args:
             transaction_id: Transaction ID
-            status: Status code (0 = success)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge_hash: Hashed challenge (165 bytes fixed)
         """
         super().__init__(transaction_id)
-        self.status = status
+        self.app_instance_id = app_instance_id
+        self.central_challenge_hash = central_challenge_hash
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse status from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (167 bytes)
         """
-        if len(payload) >= 1:
-            self.status = payload[0]
+        if len(payload) >= 167:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge_hash = payload[2:167]
 
     def build_payload(self) -> bytes:
-        """Build status payload.
+        """Build payload.
 
         Returns:
-            Status byte
+            167-byte payload (app_instance_id + 165-byte hash)
         """
-        return bytes([self.status])
+        hash_data = self.central_challenge_hash[:165].ljust(165, b"\x00")
+        return write_uint16_le(self.app_instance_id) + hash_data
 
 
 class Jpake1bRequest(Message):
-    """JPake Round 1b request message (app sends to pump).
+    """JPake Round 1b request message.
 
-    Opcode: 0x12 (placeholder - verify with actual protocol)
+    Opcode: 34 (0x22)
+    Payload: 167 bytes (same structure as Jpake1a)
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-166: central_challenge (165 bytes fixed)
 
-    Round 1b: App sends its first ephemeral public keys (G3, G4) with ZKPs.
+    Second part of JPake round 1 from central device.
     """
 
-    opcode = 0x12
+    opcode = 34
 
-    def __init__(self, transaction_id: int = 0, g3: bytes = b"", g4: bytes = b""):
-        """Initialize JPake round 1b request.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        central_challenge: bytes = b"",
+    ):
+        """Initialize Jpake1b request.
 
         Args:
             transaction_id: Transaction ID
-            g3: Third ephemeral public key (G3 = g^x3)
-            g4: Fourth ephemeral public key (G4 = g^x4)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge: JPake challenge data (165 bytes fixed)
         """
         super().__init__(transaction_id)
-        self.g3 = g3
-        self.g4 = g4
+        self.app_instance_id = app_instance_id
+        self.central_challenge = central_challenge
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse JPake 1b payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (167 bytes)
         """
-        if len(payload) < 4:
-            return
-
-        # Parse G3
-        g3_len = int.from_bytes(payload[0:2], "big")
-        g3_start = 2
-        g3_end = g3_start + g3_len
-        self.g3 = payload[g3_start:g3_end]
-
-        # Parse G4
-        if len(payload) > g3_end + 2:
-            g4_len = int.from_bytes(payload[g3_end : g3_end + 2], "big")
-            g4_start = g3_end + 2
-            g4_end = g4_start + g4_len
-            self.g4 = payload[g4_start:g4_end]
+        if len(payload) >= 167:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge = payload[2:167]
 
     def build_payload(self) -> bytes:
-        """Build JPake 1b payload.
+        """Build payload.
 
         Returns:
-            Payload bytes
+            167-byte payload (app_instance_id + 165-byte challenge)
         """
-        payload = b""
-        payload += len(self.g3).to_bytes(2, "big") + self.g3
-        payload += len(self.g4).to_bytes(2, "big") + self.g4
-        return payload
+        challenge = self.central_challenge[:165].ljust(165, b"\x00")
+        return write_uint16_le(self.app_instance_id) + challenge
 
 
 class Jpake1bResponse(Message):
-    """JPake Round 1b response message (pump acknowledges).
+    """JPake Round 1b response message.
 
-    Opcode: 0x13 (placeholder - verify with actual protocol)
+    Opcode: 35 (0x23)
+    Payload: 167 bytes (same structure as Jpake1a response)
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-166: central_challenge_hash (165 bytes fixed)
+
+    Response to Jpake1b with hashed challenge data.
     """
 
-    opcode = 0x13
+    opcode = 35
 
-    def __init__(self, transaction_id: int = 0, status: int = 0):
-        """Initialize JPake round 1b response.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        central_challenge_hash: bytes = b"",
+    ):
+        """Initialize Jpake1b response.
 
         Args:
             transaction_id: Transaction ID
-            status: Status code (0 = success)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            central_challenge_hash: Hashed challenge (165 bytes fixed)
         """
         super().__init__(transaction_id)
-        self.status = status
+        self.app_instance_id = app_instance_id
+        self.central_challenge_hash = central_challenge_hash
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse status from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (167 bytes)
         """
-        if len(payload) >= 1:
-            self.status = payload[0]
+        if len(payload) >= 167:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.central_challenge_hash = payload[2:167]
 
     def build_payload(self) -> bytes:
-        """Build status payload.
+        """Build payload.
 
         Returns:
-            Status byte
+            167-byte payload (app_instance_id + 165-byte hash)
         """
-        return bytes([self.status])
+        hash_data = self.central_challenge_hash[:165].ljust(165, b"\x00")
+        return write_uint16_le(self.app_instance_id) + hash_data
+
+
+# =============================================================================
+# JPake Round 2 Messages (Opcodes 36-37)
+# =============================================================================
 
 
 class Jpake2Request(Message):
-    """JPake Round 2 request message (pump sends to app).
+    """JPake Round 2 request message.
 
-    Opcode: 0x14 (placeholder - verify with actual protocol)
+    Opcode: 36 (0x24)
+    Payload: Variable (with app_instance_id prefix)
 
-    Round 2: Pump sends A = (G1*G3*G4)^(x2*s) with ZKP.
+    Second round of JPake key exchange.
     """
 
-    opcode = 0x14
+    opcode = 36
 
-    def __init__(self, transaction_id: int = 0, a_value: bytes = b""):
-        """Initialize JPake round 2 request.
+    def __init__(
+        self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""
+    ):
+        """Initialize Jpake2 request.
 
         Args:
             transaction_id: Transaction ID
-            a_value: A value with ZKP
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            data: JPake round 2 data
         """
         super().__init__(transaction_id)
-        self.a_value = a_value
+        self.app_instance_id = app_instance_id
+        self.data = data
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse JPake 2 payload.
+        """Parse payload.
 
         Args:
             payload: Raw payload bytes
         """
-        self.a_value = payload
+        if len(payload) >= 2:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.data = payload[2:]
 
     def build_payload(self) -> bytes:
-        """Build JPake 2 payload.
+        """Build payload.
 
         Returns:
-            A value bytes
+            Payload with app_instance_id prefix
         """
-        return self.a_value
+        return write_uint16_le(self.app_instance_id) + self.data
 
 
 class Jpake2Response(Message):
-    """JPake Round 2 response message (app sends to pump).
+    """JPake Round 2 response message.
 
-    Opcode: 0x15 (placeholder - verify with actual protocol)
+    Opcode: 37 (0x25)
+    Payload: Variable (with app_instance_id prefix)
 
-    Round 2: App sends B = (G1*G2*G3)^(x4*s) with ZKP.
+    Response to Jpake2 request.
     """
 
-    opcode = 0x15
+    opcode = 37
 
-    def __init__(self, transaction_id: int = 0, b_value: bytes = b""):
-        """Initialize JPake round 2 response.
+    def __init__(
+        self, transaction_id: int = 0, app_instance_id: int = 0, data: bytes = b""
+    ):
+        """Initialize Jpake2 response.
 
         Args:
             transaction_id: Transaction ID
-            b_value: B value with ZKP
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            data: JPake round 2 response data
         """
         super().__init__(transaction_id)
-        self.b_value = b_value
+        self.app_instance_id = app_instance_id
+        self.data = data
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse JPake 2 response payload.
+        """Parse payload.
 
         Args:
             payload: Raw payload bytes
         """
-        self.b_value = payload
+        if len(payload) >= 2:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.data = payload[2:]
 
     def build_payload(self) -> bytes:
-        """Build JPake 2 response payload.
+        """Build payload.
 
         Returns:
-            B value bytes
+            Payload with app_instance_id prefix
         """
-        return self.b_value
+        return write_uint16_le(self.app_instance_id) + self.data
+
+
+# =============================================================================
+# JPake Session Key Messages (Opcodes 38-39)
+# =============================================================================
 
 
 class Jpake3SessionKeyRequest(Message):
-    """JPake Round 3 session key request (app sends key confirmation).
+    """JPake Round 3 session key request message.
 
-    Opcode: 0x16 (placeholder - verify with actual protocol)
+    Opcode: 38 (0x26)
+    Payload: 2 bytes
+    - Bytes 0-1: challenge_param (uint16, little-endian)
 
-    Round 3: App sends confirmation of derived session key.
+    Session key negotiation request.
     """
 
-    opcode = 0x16
+    opcode = 38
 
-    def __init__(self, transaction_id: int = 0, key_confirmation: bytes = b""):
-        """Initialize JPake round 3 request.
+    def __init__(self, transaction_id: int = 0, challenge_param: int = 0):
+        """Initialize Jpake3 session key request.
 
         Args:
             transaction_id: Transaction ID
-            key_confirmation: Key confirmation value
+            challenge_param: Challenge parameter (uint16, 2 bytes) - NOT generic bytes
         """
         super().__init__(transaction_id)
-        self.key_confirmation = key_confirmation
+        self.challenge_param = challenge_param
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse key confirmation from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (2 bytes)
         """
-        self.key_confirmation = payload
+        if len(payload) >= 2:
+            self.challenge_param = read_uint16_le(payload, 0)
 
     def build_payload(self) -> bytes:
-        """Build key confirmation payload.
+        """Build payload.
 
         Returns:
-            Key confirmation bytes
+            2-byte payload (challenge_param as uint16 little-endian)
         """
-        return self.key_confirmation
+        return write_uint16_le(self.challenge_param)
 
 
 class Jpake3SessionKeyResponse(Message):
-    """JPake Round 3 session key response (pump acknowledges).
+    """JPake Round 3 session key response message.
 
-    Opcode: 0x17 (placeholder - verify with actual protocol)
+    Opcode: 39 (0x27)
+    Payload: 18 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-9: device_key_nonce (8 bytes)
+    - Bytes 10-17: device_key_reserved (8 bytes)
+
+    Session key response with device keys.
     """
 
-    opcode = 0x17
+    opcode = 39
 
-    def __init__(self, transaction_id: int = 0, status: int = 0):
-        """Initialize JPake round 3 response.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        device_key_nonce: bytes = b"",
+        device_key_reserved: bytes = b"",
+    ):
+        """Initialize Jpake3 session key response.
 
         Args:
             transaction_id: Transaction ID
-            status: Status code (0 = success, non-zero = failure)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            device_key_nonce: Device key nonce (8 bytes)
+            device_key_reserved: Device key reserved (8 bytes)
         """
         super().__init__(transaction_id)
-        self.status = status
+        self.app_instance_id = app_instance_id
+        self.device_key_nonce = device_key_nonce
+        self.device_key_reserved = device_key_reserved
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse status from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (18 bytes)
         """
-        if len(payload) >= 1:
-            self.status = payload[0]
+        if len(payload) >= 18:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.device_key_nonce = payload[2:10]
+            self.device_key_reserved = payload[10:18]
 
     def build_payload(self) -> bytes:
-        """Build status payload.
+        """Build payload.
 
         Returns:
-            Status byte
+            18-byte payload (app_instance_id + nonce + reserved)
         """
-        return bytes([self.status])
+        nonce = self.device_key_nonce[:8].ljust(8, b"\x00")
+        reserved = self.device_key_reserved[:8].ljust(8, b"\x00")
+        return write_uint16_le(self.app_instance_id) + nonce + reserved
+
+
+# =============================================================================
+# JPake Key Confirmation Messages (Opcodes 40-41)
+# =============================================================================
 
 
 class Jpake4KeyConfirmationRequest(Message):
-    """JPake Round 4 key confirmation request (pump sends final confirmation).
+    """JPake Round 4 key confirmation request message.
 
-    Opcode: 0x18 (placeholder - verify with actual protocol)
+    Opcode: 40 (0x28)
+    Payload: 50 bytes
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-9: nonce (8 bytes EXACTLY)
+    - Bytes 10-17: reserved (8 bytes EXACTLY)
+    - Bytes 18-49: hash_digest (32 bytes EXACTLY - SHA256)
 
-    Round 4: Pump sends its own key confirmation.
+    Final key confirmation request with validated field sizes.
     """
 
-    opcode = 0x18
+    opcode = 40
 
-    def __init__(self, transaction_id: int = 0, confirmation: bytes = b""):
-        """Initialize JPake round 4 request.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        nonce: bytes = b"",
+        reserved: bytes = b"",
+        hash_digest: bytes = b"",
+    ):
+        """Initialize Jpake4 key confirmation request.
 
         Args:
             transaction_id: Transaction ID
-            confirmation: Pump's key confirmation value
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            nonce: Nonce (MUST be exactly 8 bytes)
+            reserved: Reserved (MUST be exactly 8 bytes)
+            hash_digest: SHA256 hash (MUST be exactly 32 bytes)
         """
         super().__init__(transaction_id)
-        self.confirmation = confirmation
+        self.app_instance_id = app_instance_id
+        self.nonce = nonce
+        self.reserved = reserved
+        self.hash_digest = hash_digest
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse confirmation from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (50 bytes)
         """
-        self.confirmation = payload
+        if len(payload) >= 50:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.nonce = payload[2:10]
+            self.reserved = payload[10:18]
+            self.hash_digest = payload[18:50]
 
     def build_payload(self) -> bytes:
-        """Build confirmation payload.
+        """Build payload.
 
         Returns:
-            Confirmation bytes
+            50-byte payload (validated field sizes)
         """
-        return self.confirmation
+        # Validate field sizes
+        nonce = self.nonce[:8].ljust(8, b"\x00")
+        reserved = self.reserved[:8].ljust(8, b"\x00")
+        hash_digest = self.hash_digest[:32].ljust(32, b"\x00")
+
+        return write_uint16_le(self.app_instance_id) + nonce + reserved + hash_digest
 
 
 class Jpake4KeyConfirmationResponse(Message):
-    """JPake Round 4 key confirmation response (app acknowledges completion).
+    """JPake Round 4 key confirmation response message.
 
-    Opcode: 0x19 (placeholder - verify with actual protocol)
+    Opcode: 41 (0x29)
+    Payload: 50 bytes (same structure as request)
+    - Bytes 0-1: app_instance_id (uint16, little-endian)
+    - Bytes 2-9: nonce (8 bytes)
+    - Bytes 10-17: reserved (8 bytes)
+    - Bytes 18-49: hash_digest (32 bytes - SHA256)
 
-    Final acknowledgment - authentication complete.
+    Response confirming key exchange completion.
     """
 
-    opcode = 0x19
+    opcode = 41
 
-    def __init__(self, transaction_id: int = 0, status: int = 0):
-        """Initialize JPake round 4 response.
+    def __init__(
+        self,
+        transaction_id: int = 0,
+        app_instance_id: int = 0,
+        nonce: bytes = b"",
+        reserved: bytes = b"",
+        hash_digest: bytes = b"",
+    ):
+        """Initialize Jpake4 key confirmation response.
 
         Args:
             transaction_id: Transaction ID
-            status: Status code (0 = success, authentication complete)
+            app_instance_id: Application instance ID (uint16, 2 bytes)
+            nonce: Nonce (8 bytes)
+            reserved: Reserved (8 bytes)
+            hash_digest: SHA256 hash (32 bytes)
         """
         super().__init__(transaction_id)
-        self.status = status
+        self.app_instance_id = app_instance_id
+        self.nonce = nonce
+        self.reserved = reserved
+        self.hash_digest = hash_digest
 
     def parse_payload(self, payload: bytes) -> None:
-        """Parse status from payload.
+        """Parse payload.
 
         Args:
-            payload: Raw payload bytes
+            payload: Raw payload bytes (50 bytes)
         """
-        if len(payload) >= 1:
-            self.status = payload[0]
+        if len(payload) >= 50:
+            self.app_instance_id = read_uint16_le(payload, 0)
+            self.nonce = payload[2:10]
+            self.reserved = payload[10:18]
+            self.hash_digest = payload[18:50]
 
     def build_payload(self) -> bytes:
-        """Build status payload.
+        """Build payload.
 
         Returns:
-            Status byte
+            50-byte payload
         """
-        return bytes([self.status])
+        nonce = self.nonce[:8].ljust(8, b"\x00")
+        reserved = self.reserved[:8].ljust(8, b"\x00")
+        hash_digest = self.hash_digest[:32].ljust(32, b"\x00")
+
+        return write_uint16_le(self.app_instance_id) + nonce + reserved + hash_digest
 
 
-# Register authentication messages
+# Register all authentication messages
 MessageRegistry.register(CentralChallengeRequest.opcode, CentralChallengeRequest)
 MessageRegistry.register(CentralChallengeResponse.opcode, CentralChallengeResponse)
 MessageRegistry.register(PumpChallengeRequest.opcode, PumpChallengeRequest)
 MessageRegistry.register(PumpChallengeResponse.opcode, PumpChallengeResponse)
-
-# Register JPake messages
 MessageRegistry.register(Jpake1aRequest.opcode, Jpake1aRequest)
 MessageRegistry.register(Jpake1aResponse.opcode, Jpake1aResponse)
 MessageRegistry.register(Jpake1bRequest.opcode, Jpake1bRequest)
