@@ -263,13 +263,25 @@ class Authenticator:
         # Note: G3 would have been received in a previous message (for full flow)
         self.g4_point = point
 
-        # For SIMULATOR: Use placeholder for G3 if not already set
-        if self.g3_point is None:
-            self.g3_point = b"\x04" + secrets.token_bytes(64)
+        # For SIMULATOR: Generate a valid placeholder EC point for G3 if not already set
+        # In production, G3 would come from Jpake1aResponse message
+        if self.g3_point is None and self.jpake_protocol:
+            # Generate a valid EC point by using the JPake protocol's scalar mult
+            from cryptography.hazmat.backends import default_backend
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric import ec
+
+            # Generate a temporary private key to get a valid point
+            temp_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+            temp_public = temp_key.public_key()
+            self.g3_point = temp_public.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint,
+            )
 
         # Process Round 1 data in jpake_protocol so it can generate Round 2
         # SIMULATOR: ZKP verification is skipped
-        if self.jpake_protocol:
+        if self.jpake_protocol and self.g3_point:
             self.jpake_protocol.process_round1(self.g3_point, self.g4_point)
 
         # Encode G2 into response (165-byte ECJPAKEKeyKP format)

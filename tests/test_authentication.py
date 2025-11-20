@@ -311,8 +311,6 @@ def test_authenticator_handle_pump_challenge():
 
 def test_authenticator_jpake_flow():
     """Test complete JPake authentication flow with new message structures."""
-    import secrets
-
     from tandem_simulator.authentication.jpake_encoding import (
         decode_ec_jpake_key_kp,
         encode_ec_jpake_key_kp,
@@ -320,17 +318,19 @@ def test_authenticator_jpake_flow():
     )
 
     auth = Authenticator()
-    pairing_code = auth.start_pairing("AA:BB:CC:DD:EE:FF")  # noqa: F841
+    pairing_code = auth.start_pairing("AA:BB:CC:DD:EE:FF")
+
+    # Create app-side JPake to generate valid EC points
+    app_jpake = JPakeProtocol(pairing_code=pairing_code, role="app")
 
     # Round 1a: Pump generates (165-byte encoded message)
     jpake1a_req = auth.generate_jpake1a()
     assert auth.state == AuthenticationState.JPAKE_ROUND1_SENT
     assert len(jpake1a_req.central_challenge) == 165
 
-    # Round 1b: App generates, pump receives (165-byte encoded message)
-    # For simulation, create a placeholder 165-byte structure
-    dummy_point = b"\x04" + secrets.token_bytes(64)  # SEC1 uncompressed point
-    jpake1b_data = encode_ec_jpake_key_kp(dummy_point)
+    # Round 1b: App generates valid EC points, pump receives
+    g3, g4 = app_jpake.generate_round1()  # Generate valid EC points
+    jpake1b_data = encode_ec_jpake_key_kp(g4)  # Encode G4 with ZKP
 
     jpake1b_req = Jpake1bRequest(
         transaction_id=2, app_instance_id=auth.app_instance_id, central_challenge=jpake1b_data
@@ -339,13 +339,20 @@ def test_authenticator_jpake_flow():
     assert len(jpake1b_resp.central_challenge_hash) == 165  # Response is 165 bytes
     assert auth.state == AuthenticationState.JPAKE_ROUND1_COMPLETE
 
+    # App processes G1, G2 from pump
+    # Decode G1 from jpake1a, G2 from jpake1b response
+    g1_point, _, _ = decode_ec_jpake_key_kp(jpake1a_req.central_challenge)
+    g2_point, _, _ = decode_ec_jpake_key_kp(jpake1b_resp.central_challenge_hash)
+    app_jpake.process_round1(g1_point, g2_point)
+
     # Round 2: Pump generates A (165-byte encoded message)
     jpake2_req = auth.generate_jpake2()
     assert auth.state == AuthenticationState.JPAKE_ROUND2_SENT
     assert len(jpake2_req.data) == 165
 
-    # Pump processes B (165-byte encoded message)
-    b_data = encode_jpake_round2(b"\x04" + secrets.token_bytes(64))
+    # App generates B and pump processes it
+    b_value = app_jpake.generate_round2()  # Generate valid B point
+    b_data = encode_jpake_round2(b_value)
     jpake2_resp = Jpake2Response(
         transaction_id=3, app_instance_id=auth.app_instance_id, data=b_data
     )
@@ -363,7 +370,9 @@ def test_authenticator_jpake_flow():
     assert auth.state == AuthenticationState.KEY_CONFIRMATION_SENT
     assert len(jpake4_req.hash_digest) == 32  # SHA256
 
-    # Complete authentication
+    # Complete authentication (use placeholder values for response)
+    import secrets
+
     jpake4_resp = Jpake4KeyConfirmationResponse(
         transaction_id=5,
         app_instance_id=auth.app_instance_id,
