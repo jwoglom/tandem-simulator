@@ -37,16 +37,16 @@ test-cov:
 
 lint:
 	@echo "Running black format check..."
-	@python -m black --check tandem_simulator simulator.py tests
+	@uv run black --check tandem_simulator simulator.py tests
 	@echo ""
 	@echo "Running isort import check..."
-	@python -m isort --check-only tandem_simulator simulator.py tests
+	@uv run isort --check-only tandem_simulator simulator.py tests
 	@echo ""
 	@echo "Running flake8..."
-	@python -m flake8 tandem_simulator tests
+	@uv run flake8 tandem_simulator tests
 	@echo ""
 	@echo "Running mypy type check..."
-	@python -m mypy tandem_simulator
+	@uv run mypy tandem_simulator
 	@echo ""
 	@echo "✅ All linting checks passed!"
 
@@ -55,15 +55,15 @@ pre-commit: format lint test
 	@echo "✅ All pre-commit checks passed! Ready to commit and push."
 
 format:
-	python -m black tandem_simulator simulator.py tests
-	python -m isort tandem_simulator simulator.py tests
+	uv run black tandem_simulator simulator.py tests
+	uv run isort tandem_simulator simulator.py tests
 
 format-check:
-	python -m black --check tandem_simulator simulator.py tests
-	python -m isort --check-only tandem_simulator simulator.py tests
+	uv run black --check tandem_simulator simulator.py tests
+	uv run isort --check-only tandem_simulator simulator.py tests
 
 type-check:
-	python -m mypy tandem_simulator
+	uv run mypy tandem_simulator
 
 clean:
 	rm -rf build/

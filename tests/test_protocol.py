@@ -14,14 +14,16 @@ from tandem_simulator.protocol.crypto import (
     validate_signed_message,
 )
 from tandem_simulator.protocol.message import Message, MessageHeader, MessageRegistry
-from tandem_simulator.protocol.messages.authentication import (
-    CentralChallengeRequest,
-    CentralChallengeResponse,
-)
-from tandem_simulator.protocol.messages.status import (
+from tandem_simulator.protocol.messages import (
     ApiVersionRequest,
     ApiVersionResponse,
-    CurrentBatteryResponse,
+    CentralChallengeRequest,
+    CentralChallengeResponse,
+    CurrentBasalStatusResponse,
+    CurrentBatteryV1Response,
+    CurrentBolusStatusResponse,
+    InsulinStatusResponse,
+    PumpVersionResponse,
 )
 from tandem_simulator.protocol.packetizer import ControlPacketizer, Packetizer
 
@@ -87,7 +89,7 @@ def test_message_parse_and_serialize():
 
 def test_api_version_response():
     """Test API version response message."""
-    msg = ApiVersionResponse(transaction_id=5, major=2, minor=3, patch=1)
+    msg = ApiVersionResponse(transaction_id=5, major=2, minor=3)
     serialized = msg.serialize()
 
     # Parse it back
@@ -96,18 +98,20 @@ def test_api_version_response():
     assert parsed.transaction_id == 5
     assert parsed.major == 2
     assert parsed.minor == 3
-    assert parsed.patch == 1
 
 
 def test_current_battery_response():
-    """Test battery response message."""
-    msg = CurrentBatteryResponse(transaction_id=10, battery_percent=75)
+    """Test battery response message (V1)."""
+    msg = CurrentBatteryV1Response(
+        transaction_id=10, current_battery_abc=75, current_battery_ibc=80
+    )
     serialized = msg.serialize()
 
-    parsed = CurrentBatteryResponse.parse(serialized)
+    parsed = CurrentBatteryV1Response.parse(serialized)
 
     assert parsed.transaction_id == 10
-    assert parsed.battery_percent == 75
+    assert parsed.current_battery_abc == 75
+    assert parsed.current_battery_ibc == 80
 
 
 def test_packetizer_chunking():
@@ -127,7 +131,7 @@ def test_packetizer_chunking():
 def test_packetizer_reassembly():
     """Test message reassembly with CRC validation."""
     # Create a test message
-    msg = ApiVersionResponse(transaction_id=1, major=1, minor=0, patch=0)
+    msg = ApiVersionResponse(transaction_id=1, major=1, minor=0)
     serialized = msg.serialize()
 
     # Add CRC
@@ -222,7 +226,7 @@ def test_signed_message_auth():
 def test_message_registry_parse():
     """Test parsing messages using registry."""
     # Create an API version response
-    msg = ApiVersionResponse(transaction_id=3, major=1, minor=2, patch=3)
+    msg = ApiVersionResponse(transaction_id=3, major=1, minor=2)
     serialized = msg.serialize()
 
     # Parse using registry
@@ -232,23 +236,119 @@ def test_message_registry_parse():
     assert parsed.transaction_id == 3
     assert parsed.major == 1
     assert parsed.minor == 2
-    assert parsed.patch == 3
+
+
+def test_insulin_status_response():
+    """Test insulin status response message."""
+    msg = InsulinStatusResponse(
+        transaction_id=7, current_insulin_amount=25000, is_estimate=0, insulin_low_amount=20
+    )
+    serialized = msg.serialize()
+
+    parsed = InsulinStatusResponse.parse(serialized)
+    assert parsed.transaction_id == 7
+    assert parsed.current_insulin_amount == 25000
+    assert parsed.is_estimate == 0
+    assert parsed.insulin_low_amount == 20
+
+
+def test_current_basal_status_response():
+    """Test current basal status response message."""
+    msg = CurrentBasalStatusResponse(
+        transaction_id=8,
+        profile_basal_rate=8500,
+        current_basal_rate=8500,
+        basal_modified_bitmask=0,
+    )
+    serialized = msg.serialize()
+
+    parsed = CurrentBasalStatusResponse.parse(serialized)
+    assert parsed.transaction_id == 8
+    assert parsed.profile_basal_rate == 8500
+    assert parsed.current_basal_rate == 8500
+    assert parsed.basal_modified_bitmask == 0
+
+
+def test_current_bolus_status_response():
+    """Test current bolus status response message (15 bytes)."""
+    msg = CurrentBolusStatusResponse(
+        transaction_id=9,
+        status_id=CurrentBolusStatusResponse.STATUS_DELIVERING,
+        bolus_id=42,
+        timestamp=1234567890,
+        requested_volume=50000,  # 5.0 units * 10000
+        bolus_source_id=1,
+        bolus_type_bitmask=0x01,
+    )
+    serialized = msg.serialize()
+
+    parsed = CurrentBolusStatusResponse.parse(serialized)
+    assert parsed.transaction_id == 9
+    assert parsed.status_id == CurrentBolusStatusResponse.STATUS_DELIVERING
+    assert parsed.bolus_id == 42
+    assert parsed.timestamp == 1234567890
+    assert parsed.requested_volume == 50000
+    assert parsed.bolus_source_id == 1
+    assert parsed.bolus_type_bitmask == 0x01
+    assert parsed.is_valid()
+
+
+def test_pump_version_response():
+    """Test pump version response message (48 bytes)."""
+    msg = PumpVersionResponse(
+        transaction_id=10,
+        arm_sw_ver=0x01020304,
+        msp_sw_ver=0x05060708,
+        config_a_bits=0x12345678,
+        config_b_bits=0x9ABCDEF0,
+        serial_num=12345678,
+        part_num=87654321,
+        pump_rev="7.7.1",
+        pcba_sn=11223344,
+        pcba_rev="v1.2",
+        model_num=100,
+    )
+    serialized = msg.serialize()
+
+    parsed = PumpVersionResponse.parse(serialized)
+    assert parsed.transaction_id == 10
+    assert parsed.arm_sw_ver == 0x01020304
+    assert parsed.msp_sw_ver == 0x05060708
+    assert parsed.config_a_bits == 0x12345678
+    assert parsed.config_b_bits == 0x9ABCDEF0
+    assert parsed.serial_num == 12345678
+    assert parsed.part_num == 87654321
+    assert parsed.pump_rev == "7.7.1"
+    assert parsed.pcba_sn == 11223344
+    assert parsed.pcba_rev == "v1.2"
+    assert parsed.model_num == 100
 
 
 def test_central_challenge_messages():
     """Test central challenge request and response."""
-    # Test request
-    challenge_data = b"challenge_123456"
-    req = CentralChallengeRequest(transaction_id=1, challenge=challenge_data)
+    # Test request (opcode 16, 10 bytes: app_instance_id + 8-byte challenge)
+    challenge_data = b"12345678"  # Exactly 8 bytes
+    req = CentralChallengeRequest(
+        transaction_id=1, app_instance_id=1234, central_challenge=challenge_data
+    )
     serialized = req.serialize()
 
     parsed = CentralChallengeRequest.parse(serialized)
-    assert parsed.challenge == challenge_data
+    assert parsed.app_instance_id == 1234
+    assert parsed.central_challenge == challenge_data
 
-    # Test response
-    response_data = b"response_654321"
-    resp = CentralChallengeResponse(transaction_id=2, response=response_data)
+    # Test response (opcode 17, 30 bytes: app_instance_id + 20-byte hash + 8-byte key)
+    hash_data = b"12345678901234567890"  # 20 bytes
+    key_data = b"12345678"  # 8 bytes
+    resp = CentralChallengeResponse(
+        transaction_id=2,
+        app_instance_id=1234,
+        central_challenge_hash=hash_data,
+        hmac_key=key_data,
+    )
     serialized = resp.serialize()
 
     parsed = CentralChallengeResponse.parse(serialized)
-    assert parsed.response == response_data
+    assert parsed.app_instance_id == 1234
+    assert parsed.central_challenge_hash == hash_data
+    assert parsed.hmac_key == key_data

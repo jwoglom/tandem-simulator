@@ -1,31 +1,78 @@
 """Protocol message implementations.
 
 This package contains specific message type implementations for
-the Tandem pump protocol.
+the Tandem pump protocol, organized to match pumpX2 structure.
 
-Milestone 2 deliverable.
+Milestone 4 - Restructured to match Java implementation.
 """
 
-from tandem_simulator.protocol.messages.authentication import (
+# Import all authentication messages
+from tandem_simulator.protocol.messages.request.authentication import (
     CentralChallengeRequest,
-    CentralChallengeResponse,
+    Jpake1aRequest,
+    Jpake1bRequest,
+    Jpake2Request,
+    Jpake3SessionKeyRequest,
+    Jpake4KeyConfirmationRequest,
     PumpChallengeRequest,
+)
+
+# Import all status messages
+from tandem_simulator.protocol.messages.request.currentStatus import (
+    ApiVersionRequest,
+    CurrentBasalStatusRequest,
+    CurrentBatteryV1Request,
+    CurrentBolusStatusRequest,
+    InsulinStatusRequest,
+    PumpVersionRequest,
+)
+from tandem_simulator.protocol.messages.response.authentication import (
+    CentralChallengeResponse,
+    Jpake1aResponse,
+    Jpake1bResponse,
+    Jpake2Response,
+    Jpake3SessionKeyResponse,
+    Jpake4KeyConfirmationResponse,
     PumpChallengeResponse,
 )
-from tandem_simulator.protocol.messages.status import (
-    ApiVersionRequest,
+from tandem_simulator.protocol.messages.response.currentStatus import (
     ApiVersionResponse,
-    PumpVersionRequest,
+    CurrentBasalStatusResponse,
+    CurrentBatteryV1Response,
+    CurrentBolusStatusResponse,
+    InsulinStatusResponse,
     PumpVersionResponse,
 )
 
 __all__ = [
+    # Authentication requests
     "CentralChallengeRequest",
-    "CentralChallengeResponse",
+    "Jpake1aRequest",
+    "Jpake1bRequest",
+    "Jpake2Request",
+    "Jpake3SessionKeyRequest",
+    "Jpake4KeyConfirmationRequest",
     "PumpChallengeRequest",
+    # Authentication responses
+    "CentralChallengeResponse",
+    "Jpake1aResponse",
+    "Jpake1bResponse",
+    "Jpake2Response",
+    "Jpake3SessionKeyResponse",
+    "Jpake4KeyConfirmationResponse",
     "PumpChallengeResponse",
+    # Status requests
     "ApiVersionRequest",
-    "ApiVersionResponse",
+    "CurrentBasalStatusRequest",
+    "CurrentBatteryV1Request",
+    "CurrentBolusStatusRequest",
+    "InsulinStatusRequest",
     "PumpVersionRequest",
+    # Status responses
+    "ApiVersionResponse",
+    "CurrentBasalStatusResponse",
+    "CurrentBatteryV1Response",
+    "CurrentBolusStatusResponse",
+    "InsulinStatusResponse",
     "PumpVersionResponse",
 ]
