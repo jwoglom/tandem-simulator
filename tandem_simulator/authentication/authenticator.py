@@ -260,12 +260,17 @@ class Authenticator:
         point, _, _ = decode_ec_jpake_key_kp(message.central_challenge)
 
         # Store as G4 (the app's second public key in JPake protocol)
-        # Note: G3 would have been received in a previous Jpake1aRequest (not shown here)
+        # Note: G3 would have been received in a previous message (for full flow)
         self.g4_point = point
 
-        # Process Round 1 data from app (SIMULATOR: just store, don't verify ZKP)
-        # Production should verify the Zero-Knowledge Proof
-        # self.jpake_protocol.process_round1(g3, g4)
+        # For SIMULATOR: Use placeholder for G3 if not already set
+        if self.g3_point is None:
+            self.g3_point = b"\x04" + secrets.token_bytes(64)
+
+        # Process Round 1 data in jpake_protocol so it can generate Round 2
+        # SIMULATOR: ZKP verification is skipped
+        if self.jpake_protocol:
+            self.jpake_protocol.process_round1(self.g3_point, self.g4_point)
 
         # Encode G2 into response (165-byte ECJPAKEKeyKP format)
         if not self.g2_point:
@@ -325,9 +330,9 @@ class Authenticator:
         b_value = decode_jpake_round2(message.data)
         self.b_point = b_value
 
-        # Process Round 2 data from app (SIMULATOR: just store, don't verify ZKP)
-        # Production should verify the Zero-Knowledge Proof
-        # self.jpake_protocol.process_round2(b_value)
+        # Process Round 2 data in jpake_protocol so it can derive session key
+        # SIMULATOR: ZKP verification is skipped, but we need to set B for key derivation
+        self.jpake_protocol.process_round2(b_value)
 
         self._set_state(AuthenticationState.JPAKE_ROUND2_COMPLETE)
 
