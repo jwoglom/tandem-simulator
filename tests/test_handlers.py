@@ -7,6 +7,8 @@ import tempfile
 import pytest
 
 from tandem_simulator.handlers.control import ControlHandlers
+from tandem_simulator.handlers.events import EventHandlers, EventType
+from tandem_simulator.handlers.history import HistoryHandlers
 from tandem_simulator.handlers.request_handler import RequestHandler
 from tandem_simulator.handlers.status import StatusHandlers
 from tandem_simulator.protocol.messages.request.currentStatus.ApiVersionRequest import (
@@ -296,3 +298,167 @@ class TestStatePersistence:
 
         assert manager.state.battery_percent == 50
         assert manager.state.current_basal_rate == 2.0
+
+
+class TestHistoryHandlers:
+    """Test history log request handlers (stubs)."""
+
+    def test_handle_history_log_request(self):
+        """Test history log request handler."""
+        manager = PumpStateManager()
+        handlers = HistoryHandlers(manager)
+
+        from tandem_simulator.protocol.message import Message
+
+        request = Message(transaction_id=20)
+        response = handlers.handle_history_log_request(request)
+
+        # Stub implementation returns the request
+        assert response.transaction_id == 20
+
+    def test_handle_history_log_stream_request(self):
+        """Test history log stream request handler."""
+        manager = PumpStateManager()
+        handlers = HistoryHandlers(manager)
+
+        from tandem_simulator.protocol.message import Message
+
+        request = Message(transaction_id=21)
+        response = handlers.handle_history_log_stream_request(request)
+
+        # Stub implementation returns the request
+        assert response.transaction_id == 21
+
+    def test_get_sequence_number(self):
+        """Test history log sequence number generation."""
+        manager = PumpStateManager()
+        handlers = HistoryHandlers(manager)
+
+        seq1 = handlers.get_sequence_number()
+        seq2 = handlers.get_sequence_number()
+
+        assert seq2 == seq1 + 1
+
+    def test_clear_history(self):
+        """Test clearing history logs."""
+        manager = PumpStateManager()
+        handlers = HistoryHandlers(manager)
+
+        handlers.get_sequence_number()
+        handlers.get_sequence_number()
+        handlers.clear_history()
+
+        # Sequence number should reset to 0
+        assert handlers.sequence_number == 0
+
+
+class TestEventHandlers:
+    """Test qualifying events handlers."""
+
+    def test_generate_low_battery_alert(self):
+        """Test generating low battery alert."""
+        manager = PumpStateManager()
+        manager.state.battery_percent = 15
+        handlers = EventHandlers(manager)
+
+        event = handlers.generate_low_battery_alert()
+
+        assert event.event_type == EventType.ALERT
+        assert event.severity == 1  # Warning
+        assert "battery" in event.message.lower()
+        assert not event.acknowledged
+
+    def test_generate_low_insulin_alert(self):
+        """Test generating low insulin alert."""
+        manager = PumpStateManager()
+        manager.state.reservoir_volume = 25.0
+        handlers = EventHandlers(manager)
+
+        event = handlers.generate_low_insulin_alert()
+
+        assert event.event_type == EventType.ALERT
+        assert event.severity == 1  # Warning
+        assert "insulin" in event.message.lower()
+
+    def test_generate_bolus_complete_notification(self):
+        """Test generating bolus complete notification."""
+        manager = PumpStateManager()
+        handlers = EventHandlers(manager)
+
+        event = handlers.generate_bolus_complete_notification(5.0)
+
+        assert event.event_type == EventType.NOTIFICATION
+        assert event.severity == 0  # Info
+        assert "bolus" in event.message.lower()
+
+    def test_generate_occlusion_alarm(self):
+        """Test generating occlusion alarm."""
+        manager = PumpStateManager()
+        handlers = EventHandlers(manager)
+
+        event = handlers.generate_occlusion_alarm()
+
+        assert event.event_type == EventType.ALARM
+        assert event.severity == 2  # Critical
+        assert "occlusion" in event.message.lower()
+
+    def test_get_pending_events(self):
+        """Test getting pending events."""
+        manager = PumpStateManager()
+        handlers = EventHandlers(manager)
+
+        handlers.generate_low_battery_alert()
+        handlers.generate_low_insulin_alert()
+
+        pending = handlers.get_pending_events()
+        assert len(pending) == 2
+
+    def test_event_acknowledgment(self):
+        """Test event acknowledgment."""
+        manager = PumpStateManager()
+        handlers = EventHandlers(manager)
+
+        handlers.generate_low_battery_alert()
+
+        from tandem_simulator.protocol.message import Message
+
+        request = Message(transaction_id=30)
+        handlers.handle_event_acknowledgment(request)
+
+        # All events should be acknowledged
+        pending = handlers.get_pending_events()
+        assert len(pending) == 0
+
+    def test_clear_acknowledged_events(self):
+        """Test clearing acknowledged events."""
+        manager = PumpStateManager()
+        handlers = EventHandlers(manager)
+
+        handlers.generate_low_battery_alert()
+        handlers.generate_low_insulin_alert()
+
+        # Acknowledge events
+        from tandem_simulator.protocol.message import Message
+
+        request = Message(transaction_id=31)
+        handlers.handle_event_acknowledgment(request)
+
+        # Clear acknowledged events
+        handlers.clear_acknowledged_events()
+
+        # Should have no events
+        all_events = handlers.get_pending_events(acknowledged=True)
+        assert len(all_events) == 0
+
+    def test_check_and_generate_alerts(self):
+        """Test automatic alert generation."""
+        manager = PumpStateManager()
+        manager.state.battery_percent = 15  # Low battery
+        manager.state.reservoir_volume = 25.0  # Low insulin
+        handlers = EventHandlers(manager)
+
+        handlers.check_and_generate_alerts()
+
+        pending = handlers.get_pending_events()
+        # Should generate at least one alert
+        assert len(pending) > 0
