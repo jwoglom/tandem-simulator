@@ -14,7 +14,7 @@ from typing import Callable, Optional
 from tandem_simulator.authentication.jpake import JPakeProtocol
 from tandem_simulator.authentication.pairing import PairingManager
 from tandem_simulator.authentication.session import SessionManager
-from tandem_simulator.protocol.messages.authentication import (
+from tandem_simulator.protocol.messages import (
     CentralChallengeRequest,
     CentralChallengeResponse,
     Jpake1aRequest,

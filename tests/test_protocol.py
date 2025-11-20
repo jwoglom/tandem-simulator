@@ -14,13 +14,11 @@ from tandem_simulator.protocol.crypto import (
     validate_signed_message,
 )
 from tandem_simulator.protocol.message import Message, MessageHeader, MessageRegistry
-from tandem_simulator.protocol.messages.authentication import (
-    CentralChallengeRequest,
-    CentralChallengeResponse,
-)
-from tandem_simulator.protocol.messages.status import (
+from tandem_simulator.protocol.messages import (
     ApiVersionRequest,
     ApiVersionResponse,
+    CentralChallengeRequest,
+    CentralChallengeResponse,
     CurrentBasalStatusResponse,
     CurrentBatteryV1Response,
     CurrentBolusStatusResponse,

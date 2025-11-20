@@ -11,7 +11,7 @@ from tandem_simulator.authentication.authenticator import AuthenticationState, A
 from tandem_simulator.authentication.jpake import JPakeProtocol
 from tandem_simulator.authentication.pairing import PairingManager
 from tandem_simulator.authentication.session import Session, SessionManager
-from tandem_simulator.protocol.messages.authentication import (
+from tandem_simulator.protocol.messages import (
     CentralChallengeRequest,
     Jpake1aRequest,
     Jpake1bRequest,
